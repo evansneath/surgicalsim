@@ -11,12 +11,12 @@ import ode
 import sys
 from scipy import array, asarray
 
-class PA10Environment(ODEEnvironment):
+class Pa10Environment(ODEEnvironment):
     def __init__(self, xodeFile="./pa10.xode", renderer=True, realtime=False, ip="127.0.0.1", port="21590", buf='16384'):
         ODEEnvironment.__init__(self, renderer, realtime, ip, port, buf)
 
         # Load model file
-        #self.pert = asarray([0.0, 0.0, 0.0])
+        self.pert = array([0.0, 0.0, 0.0])
         self.loadXODE(xodeFile)
 
         # Standard sensors and actuators
@@ -24,17 +24,35 @@ class PA10Environment(ODEEnvironment):
         self.addSensor(sensors.JointVelocitySensor())
         self.addActuator(actuators.JointActuator())
 
-        # Set act- and obsLength, the min/max angles and the relative max touques of the joints
+        # Set number of actuators and sensors (observers)
         self.actLen = self.indim
-        self.obsLen = len(self.getSensors())
+        self.obsLen = self.outdim
+
+        #print 'NUM ACTUATORS: %d' % self.actLen
+        #print self.getActuatorNames()
+        #print 'NUM SENSORS: %d' % self.obsLen
+        #print self.getSensorNames()
+
+        # The torque values for the joints are normalized from the max torque in the env
+        self.torque_max = 5.3
+
+        torque_s2_pivot_norm = 5.3 / float(self.torque_max)
+        torque_e1_pivot_norm = 2. / float(self.torque_max)
+        torque_w1_pivot_norm = 0.36 / float(self.torque_max)
 
         # Set joint max torques
-        #self.tourqueList = array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.5, 0.5, 0.1],)
-        self.tourqueList = array([1.0,],)
+        torques = [torque_s2_pivot_norm, torque_e1_pivot_norm, torque_w1_pivot_norm]
+        self.torqueList = array(torques)
+        self.tourqueList = self.torqueList
+
+        # Define joint max/min rotation angles (normalized by 360 degrees)
+        s2_angle = 1.#0.25
+        e1_angle = 1.#0.38
+        w1_angle = 1.#0.45
 
         # Set joint max/min rotation angles
-        self.cHighList = array([0.2],)
-        self.cLowList = array([0.2],)
+        self.cHighList = array([s2_angle, e1_angle, w1_angle])
+        self.cLowList = array([-s2_angle, -e1_angle, -w1_angle])
 
         self.stepsPerAction = 1
 
@@ -92,59 +110,11 @@ class PA10Environment(ODEEnvironment):
 #            j.name = None
 #            j.attach(geom1.getBody(), geom2.getBody())
 
-#    def loadXODE(self, filename, reload=False):
-#        """ loads an XODE file (xml format) and parses it. """
-#        f = file(filename)
-#        self._currentXODEfile = filename
-#        p = xode.parser.Parser()
-#        self.root = p.parseFile(f)
-#        f.close()
-#        try:
-#            # filter all xode "world" objects from root, take only the first one
-#            world = filter(lambda x: isinstance(x, xode.parser.World), self.root.getChildren())[0]
-#        except IndexError:
-#            # malicious format, no world tag found
-#            print "no <world> tag found in " + filename + ". quitting."
-#            sys.exit()
-#        self.world = world.getODEObject()
-#        self._setWorldParameters()
-#        try:
-#            # filter all xode "space" objects from world, take only the first one
-#            space = filter(lambda x: isinstance(x, xode.parser.Space), world.getChildren())[0]
-#        except IndexError:
-#            # malicious format, no space tag found
-#            print "no <space> tag found in " + filename + ". quitting."
-#            sys.exit()
-#        self.space = space.getODEObject()
-#
-#        # load bodies and geoms for painting
-#        self.body_geom = []
-#        self._parseBodies(self.root)
-#
-#        for (body, _) in self.body_geom:
-#            if hasattr(body, 'name'):
-#                tmpStr = body.name[:-2]
-#                if tmpStr == "objectP":
-#                    body.setPosition(body.getPosition() + self.pert)
-#
-#        if self.verbosity > 0:
-#            print "-------[body/mass list]-----"
-#            for (body, _) in self.body_geom:
-#                try:
-#                    print body.name, body.getMass()
-#                except AttributeError:
-#                    print "<Nobody>"
-#
-#        # now parse the additional parameters at the end of the xode file
-#        self.loadConfig(filename, reload)
-
 #    def reset(self):
 #        ODEEnvironment.reset(self)
 #        self.pert = asarray([1.5, 0.0, 1.0])
 
 if __name__ == '__main__' :
-    w = PA10Environment()
+    w = Pa10Environment()
     while True:
         w.step()
-        if w.stepCounter == 1000: w.reset()
-
