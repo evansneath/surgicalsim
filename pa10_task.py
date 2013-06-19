@@ -2,7 +2,8 @@ __author__ = 'Evan Sneath, evansneath@gmail.com'
 
 from pybrain.rl.environments import EpisodicTask
 from pybrain.rl.environments.ode.sensors import SpecificBodyPositionSensor
-from scipy import tanh, array, sqrt
+from scipy import tanh, array, sqrt, absolute
+
 
 class Pa10Task(EpisodicTask):
     def __init__(self, env):
@@ -18,7 +19,7 @@ class Pa10Task(EpisodicTask):
         self.count = 0
 
         # The number of timesteps in the episode
-        self.epiLen = 700
+        self.epiLen = 1000
 
         # Counts the task resets for incremental learning
         self.incLearn = 0
@@ -27,7 +28,7 @@ class Pa10Task(EpisodicTask):
         self.env.FricMu = 20.0
 
         # Real-world time for each time step
-        self.env.dt = 0.01
+        self.env.dt = 0.0008#0.01
 
         # Add all actuators to the sensor limits
         self.sensor_limits = []
@@ -37,7 +38,6 @@ class Pa10Task(EpisodicTask):
         for i in range(self.env.actLen):
             self.sensor_limits.append((self.env.cLowList[i], self.env.cHighList[i]))
             self.actor_limits.append((self.env.cLowList[i], self.env.cHighList[i]))
-            #self.actor_limits.append((-1, 1))
 
         # Joint velocity sensors
         for i in range(self.env.actLen):
@@ -60,14 +60,15 @@ class Pa10Task(EpisodicTask):
         joints = array(self.env.getSensorByName('JointSensor'))
         speeds = array(self.env.getSensorByName('JointVelocitySensor'))
 
-        #print 'JOINTS:', joints, type(joints)
-        #print 'SPEEDS:', speeds, type(speeds)
+        if self.count % self.epiLen == 0:
+            print 'JOINTS:', joints, type(joints)
+            print 'SPEEDS:', speeds, type(speeds)
 
-        #print 'ACTION:', action, type(action)
-        #print 'HIGH LIMIT:', self.env.cHighList, type(self.env.cHighList)
-        #print 'LOW LIMIT:', self.env.cLowList, type(self.env.cLowList)
-        #print 'TORQUES:', self.env.torqueList, type(self.env.torqueList)
-        #print 'MAX TORQUE:', self.maxPower, type(self.maxPower)
+            print 'ACTION:', action, type(action)
+            print 'HIGH LIMIT:', self.env.cHighList, type(self.env.cHighList)
+            print 'LOW LIMIT:', self.env.cLowList, type(self.env.cLowList)
+            print 'TORQUES:', self.env.torqueList, type(self.env.torqueList)
+            print 'MAX TORQUE:', self.maxPower, type(self.maxPower)
 
         # Convert all torques to anglular speeds
         action = ((action + 1.0) / 2.0 * (self.env.cHighList -
@@ -75,7 +76,8 @@ class Pa10Task(EpisodicTask):
         action = (tanh((action - joints - 0.9 * speeds * self.env.torqueList) *
                   16.0) * self.maxPower * self.env.torqueList)
 
-        #print 'NEW ACTION:', action, type(action)
+        if self.count % self.epiLen == 0:
+            print 'NEW ACTION:', action, type(action)
 
         EpisodicTask.performAction(self, action)
 
@@ -83,6 +85,7 @@ class Pa10Task(EpisodicTask):
 
     def isFinished(self):
         if self.count > self.epiLen:
+            print 'FINISHED %d: Out of time' % self.incLearn
             self.res()
             return True
 
@@ -94,6 +97,7 @@ class Pa10Task(EpisodicTask):
         self.incLearn += 1
 
         self.reward_history.append(self.getTotalReward())
+        print 'REWARD: %f' % self.reward_history[-1]
 
         return
 
@@ -102,9 +106,17 @@ class MovementTask(Pa10Task):
     def __init__(self, env):
         Pa10Task.__init__(self, env)
 
-        self.tooltip = array([0., 0., 0.])
-        self.distance = array([0., 0., 0.])
-        self.target = array([0.5, 0.5, 0.])
+        y_floor = -1.5
+
+        # Set the current and old tooltip position attributes
+        self.tooltip_pos = array(self.env.getSensorByName('tooltipPos'))
+        self.old_tooltip_pos = array(self.env.getSensorByName('tooltipPos'))
+
+        # Define the position of the target to hit
+        self.target_pos = array([0., y_floor+1.5, 0.])
+
+        # Initialize distance between the tooltip and target
+        self.distance = 0.
 
         return
 
@@ -112,40 +124,42 @@ class MovementTask(Pa10Task):
         # Collect data about the world at each step
 
         # Get the current tooltip location
-        self.tooltip = self.env.getSensorByName('tooltipPos')
-        #y_floor = -1.5
-        #self.tooltip[1] -= y_floor
-
-        # Calculate the difference for each dimension
-        difference = self.tooltip - self.target
+        self.tooltip_pos = array(self.env.getSensorByName('tooltipPos'))
 
         # Calculate the straightline distance from the arm to the target point
-        self.distance = sqrt((difference[0:3] ** 2).sum())
+        self.distance = sqrt(((self.tooltip_pos - self.target_pos) ** 2).sum())
 
-        # Print a debug statement each time the observation is run
-        self.printDebug()
+        self.difference = sqrt(((self.tooltip_pos - self.old_tooltip_pos) ** 2).sum())
+        self.velocity = self.difference / self.env.dt
+
+        self.old_tooltip_pos = self.tooltip_pos
 
         sensors = Pa10Task.getObservation(self)
 
-        #print 'TOOLTIP:', self.tooltip
-        #print 'SENSOR NAMES:', self.env.getSensorNames()
-        #print 'SENSOR VALUES:', sensors
+        # Print out some debug stuff every time we run an episode
+        if self.count % self.epiLen == 0:
+            self.printDebug()
+            print 'TOOLTIP:', self.tooltip_pos
+            print 'SENSOR NAMES:', self.env.getSensorNames()
+            print 'SENSOR VALUES:', sensors
 
         return sensors
 
     def printDebug(self):
         # Just print out information of the location of everything
         print ('Tooltip is at: (x=%f, y=%f, z=%f)' %
-               (self.tooltip[0], self.tooltip[1], self.tooltip[2]))
+               (self.tooltip_pos[0], self.tooltip_pos[1], self.tooltip_pos[2]))
         print ('Target is at: (x=%f, y=%f, z=%f)' %
-               (self.target[0], self.target[1], self.target[2]))
+               (self.target_pos[0], self.target_pos[1], self.target_pos[2]))
         print 'Difference is %f meters' % self.distance
+        print 'Velocity is %f m/s' % self.velocity
 
         return
 
     def isFinished(self):
         # If we hit the point, we're done here
         if self.distance == 0.:
+            print 'FINISHED %d: Reached target' % self.incLearn
             self.res()
             return True
 
@@ -157,6 +171,10 @@ class MovementTask(Pa10Task):
     def getReward(self):
         # The reward is determined by the distance from the point and bonus is
         # given for less time taken to acheive the task
-        reward = (1 / (self.distance + 0.1)) / float(self.count)
+        reward = self.velocity * (1 / (self.distance + 0.1))
+
+        # Sample the rewards
+        if self.count % self.epiLen == 0:
+            print 'EPISODE REWARD: %f' % reward
 
         return reward

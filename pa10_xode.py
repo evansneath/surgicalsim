@@ -20,7 +20,7 @@ class XodePa10(XODEfile):
         s1_size = [0.220, 0.315, 0.220]
         s1_pos = [0., y_floor+(s1_size[1]/2), 0.]
         s1_euler = [0., 0., 0.]
-        s1_mass = 100
+        s1_mass = 1.#100
 
         self.insertBody(bname='pa10_s1', shape='box',
                 size=s1_size, density=0., pos=s1_pos,
@@ -33,7 +33,7 @@ class XodePa10(XODEfile):
         s2_size = [0.094, 0.450, 0.094]
         s2_pos = [0., y_floor+s1_size[1]+(s2_size[1]/2), 0.]
         s2_euler = [0., 0., 0.]
-        s2_mass = 20
+        s2_mass = 1.#20
 
         self.insertBody(bname='pa10_s2', shape='box',
                 size=s2_size, density=0., pos=s2_pos,
@@ -41,7 +41,7 @@ class XodePa10(XODEfile):
 
         # Create a joint between S1 and S2
         self.insertJoint('pa10_s1', 'pa10_s2', type='hinge',
-                axis={'x':0, 'y':0, 'z':1}, anchor=(0., s1_size[1], 0.))
+                axis={'x':0, 'y':0, 'z':1}, anchor=(0., y_floor+s1_size[1], 0.))
 
         # Add a cylinder at the joint to make it look better
         j1_size = [s1_size[0]/2, s1_size[0]]
@@ -74,16 +74,16 @@ class XodePa10(XODEfile):
         e1_size = [0.0585, 0.500, 0.0585]
         e1_pos = [0., y_floor+s1_size[1]+s2_size[1]+(e1_size[1]/2), 0.]
         e1_euler = [0., 0., 0.]
-        e1_mass = 15
+        e1_mass = 1#15
 
         self.insertBody(bname='pa10_e1', shape='box',
                 size=e1_size, density=0., pos=e1_pos,
                 passSet=['arm'], euler=e1_euler, mass=e1_mass)
 
         # Create a joint between S2 and E1
-        self.insertJoint('pa10_s2', 'pa10_e1', type='hinge',
+        self.insertJoint('pa10_s2', 'pa10_e1', type='fixed',#type='hinge',
                 axis={'x':0, 'y':0, 'z':1},
-                anchor=(0., s1_size[1]+s2_size[1], 0.))
+                anchor=(0., y_floor+s1_size[1]+s2_size[1], 0.))
 
         # Add a cylinder at the joint to make it look better
         j3_size = [s2_size[0]/2, s2_size[0]]
@@ -116,16 +116,16 @@ class XodePa10(XODEfile):
         w1_size = [0.043, 0.08, 0.043]
         w1_pos = [0., y_floor+s1_size[1]+s2_size[1]+e1_size[1]+(w1_size[1]/2), 0.]
         w1_euler = [0., 0., 0.]
-        w1_mass = 10
+        w1_mass = 1#10
 
         self.insertBody(bname='pa10_w1', shape='box',
                 size=w1_size, density=0., pos=w1_pos,
                 passSet=['arm'], euler=w1_euler, mass=w1_mass)
 
         # Create a joint between E1 and W1
-        self.insertJoint('pa10_e1', 'pa10_w1', type='hinge',
+        self.insertJoint('pa10_e1', 'pa10_w1', type='fixed',#type='hinge',
                 axis={'x':0, 'y':0, 'z':1},
-                anchor=(0., s1_size[1]+s2_size[1]+e1_size[1], 0.))
+                anchor=(0., y_floor+s1_size[1]+s2_size[1]+e1_size[1], 0.))
 
         # Add a cylinder at the joint to make it look better
         j5_size = [e1_size[0]/2, e1_size[0]]
