@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-from pa10_xode import *
-from pa10_env import Pa10Environment
-from pa10_task import MovementTask
+from pa10 import Pa10Xode, Pa10Environment, Pa10MovementTask
 
 from pybrain.structure.modules.tanhlayer import TanhLayer
 from pybrain.tools.shortcuts import buildNetwork
@@ -20,7 +18,7 @@ def create_environment():
     if os.path.exists('./'+xode_name+'.xode'):
         os.remove('./'+xode_name+'.xode')
 
-    xode = XodePa10(xode_name)
+    xode = Pa10Xode(xode_name)
     xode.writeXODE('./'+xode_name)
 
     # Create the environment
@@ -58,6 +56,6 @@ def run_experiment(env, task):
 
 if __name__ == '__main__':
     env = create_environment()
-    task = MovementTask(env)
+    task = Pa10MovementTask(env)
     run_experiment(env, task)
     #run_forever(env)

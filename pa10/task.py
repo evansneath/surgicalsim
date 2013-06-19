@@ -102,7 +102,7 @@ class Pa10Task(EpisodicTask):
         return
 
 
-class MovementTask(Pa10Task):
+class Pa10MovementTask(Pa10Task):
     def __init__(self, env):
         Pa10Task.__init__(self, env)
 

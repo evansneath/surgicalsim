@@ -2,7 +2,7 @@ __author__ = 'Evan Sneath, evansneath@gmail.com'
 
 from pybrain.rl.environments.ode.tools.xodetools import XODEfile
 
-class XodePa10(XODEfile):
+class Pa10Xode(XODEfile):
     def __init__(self, name, **kwargs):
         """Creates a model representation of the Mitsubishi PA-10"""
         XODEfile.__init__(self, name, **kwargs)
@@ -176,9 +176,9 @@ class XodePa10(XODEfile):
         return
 
 
-class XodePa10Stick(XodePa10):
+class Pa10StickXode(Pa10Xode):
     def __init__(self, name, **kwargs):
         """Adds a stick for the PA-10 arm to interact with."""
-        XodePa10.__init__(self, name, **kwargs)
+        Pa10Xode.__init__(self, name, **kwargs)
 
         return
