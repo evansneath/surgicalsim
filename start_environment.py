@@ -27,7 +27,10 @@ def create_environment():
     return env
 
 
-def run_forever(env):
+def run_forever():
+    # Create the environment
+    env = create_environment()
+
     # Continue this simulation forever without resets
     while True:
         env.step()
@@ -35,27 +38,43 @@ def run_forever(env):
     return
 
 
-def run_experiment(env, task):
+def run_experiment():
     # Create the controller network
-    hiddenUnits = 4
-    net = buildNetwork(len(task.getObservation()), hiddenUnits, env.actLen, outclass=TanhLayer)
+    HIDDEN_NODES = 4
 
-    # Create the learning agent
-    agent = OptimizationAgent(net, PGPE(storeAllEvaluations=True))
+    RUNS = 10
+    EPISODES = 5000000
 
-    # Create the experiment
-    experiment = EpisodicExperiment(task, agent)
+    env = None
 
     # Run the experiment
-    episodes = 40
-    for episode in range(episodes):
-        experiment.doEpisodes(1)
+    for run in range(RUNS):
+        # If an environment already exists, shut it down
+        if env:
+            env.closeSocket()
+
+        # Create the environment
+        env = create_environment()
+
+        # Create the task
+        task = Pa10MovementTask(env)
+
+        # Create the neural network
+        net = buildNetwork(len(task.getObservation()), HIDDEN_NODES, env.actLen, outclass=TanhLayer)
+
+        # Create the learning agent
+        agent = OptimizationAgent(net, PGPE(storeAllEvaluations=True))
+
+        # Create the experiment
+        experiment = EpisodicExperiment(task, agent)
+
+        for episode in range(EPISODES):
+            # Run one episode of the experiment
+            experiment.doEpisodes(1)
 
     return
 
 
 if __name__ == '__main__':
-    env = create_environment()
-    task = Pa10MovementTask(env)
-    run_experiment(env, task)
-    #run_forever(env)
+    run_experiment()
+    #run_forever()

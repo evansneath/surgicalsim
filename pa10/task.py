@@ -36,11 +36,10 @@ class Pa10Task(EpisodicTask):
 
         # Angle sensors and actuator limits
         for i in range(self.env.actLen):
-            self.sensor_limits.append((self.env.cLowList[i], self.env.cHighList[i]))
             self.actor_limits.append((self.env.cLowList[i], self.env.cHighList[i]))
 
-        # Joint velocity sensors
-        for i in range(self.env.actLen):
+        # Set joint and joint velocity sensors limits
+        for i in range(self.env.obsLen):
             self.sensor_limits.append((-20, 20))
 
         # Add the PA-10 tooltip position sensor
@@ -50,7 +49,7 @@ class Pa10Task(EpisodicTask):
         self.env.obsLen = self.env.outdim
 
         # Add the sensor limits of this sensor to the list
-        for i in range(self.env.obsLen - 2 * self.env.actLen):
+        for i in range(3):
             self.sensor_limits.append((-4, 4))
 
         return
@@ -60,24 +59,11 @@ class Pa10Task(EpisodicTask):
         joints = array(self.env.getSensorByName('JointSensor'))
         speeds = array(self.env.getSensorByName('JointVelocitySensor'))
 
-        if self.count % self.epiLen == 0:
-            print 'JOINTS:', joints, type(joints)
-            print 'SPEEDS:', speeds, type(speeds)
-
-            print 'ACTION:', action, type(action)
-            print 'HIGH LIMIT:', self.env.cHighList, type(self.env.cHighList)
-            print 'LOW LIMIT:', self.env.cLowList, type(self.env.cLowList)
-            print 'TORQUES:', self.env.torqueList, type(self.env.torqueList)
-            print 'MAX TORQUE:', self.maxPower, type(self.maxPower)
-
         # Convert all torques to anglular speeds
         action = ((action + 1.0) / 2.0 * (self.env.cHighList -
                   self.env.cLowList) + self.env.cLowList)
         action = (tanh((action - joints - 0.9 * speeds * self.env.torqueList) *
                   16.0) * self.maxPower * self.env.torqueList)
-
-        if self.count % self.epiLen == 0:
-            print 'NEW ACTION:', action, type(action)
 
         EpisodicTask.performAction(self, action)
 
@@ -137,11 +123,10 @@ class Pa10MovementTask(Pa10Task):
         sensors = Pa10Task.getObservation(self)
 
         # Print out some debug stuff every time we run an episode
-        if self.count % self.epiLen == 0:
-            self.printDebug()
-            print 'TOOLTIP:', self.tooltip_pos
-            print 'SENSOR NAMES:', self.env.getSensorNames()
-            print 'SENSOR VALUES:', sensors
+        #if self.count % self.epiLen == 0:
+        #    self.printDebug()
+        #    print 'SENSOR NAMES:', self.env.getSensorNames()
+        #    print 'SENSOR VALUES:', sensors
 
         return sensors
 
@@ -171,10 +156,5 @@ class Pa10MovementTask(Pa10Task):
     def getReward(self):
         # The reward is determined by the distance from the point and bonus is
         # given for less time taken to acheive the task
-        reward = self.velocity * (1 / (self.distance + 0.1))
-
-        # Sample the rewards
-        if self.count % self.epiLen == 0:
-            print 'EPISODE REWARD: %f' % reward
-
+        reward = (self.velocity * (1 / (self.distance + 0.1))) / self.epiLen
         return reward

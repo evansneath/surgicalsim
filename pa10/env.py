@@ -5,11 +5,7 @@ Code modified from PyBrain CCRLGlas example model.
 """
 
 from pybrain.rl.environments.ode import ODEEnvironment, sensors, actuators
-import imp
-import xode
-import ode
-import sys
-from scipy import array, asarray
+from scipy import array
 
 
 class Pa10Environment(ODEEnvironment):
@@ -61,6 +57,8 @@ class Pa10Environment(ODEEnvironment):
 
 
 if __name__ == '__main__' :
-    w = Pa10Environment()
+    env = Pa10Environment()
+
+    # Simulate this environment until the end of time
     while True:
-        w.step()
+        env.step()
