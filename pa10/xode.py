@@ -81,7 +81,7 @@ class Pa10Xode(XODEfile):
                 passSet=['arm'], euler=e1_euler, mass=e1_mass)
 
         # Create a joint between S2 and E1
-        self.insertJoint('pa10_s2', 'pa10_e1', type='fixed',#type='hinge',
+        self.insertJoint('pa10_s2', 'pa10_e1', type='hinge',
                 axis={'x':0, 'y':0, 'z':1},
                 anchor=(0., y_floor+s1_size[1]+s2_size[1], 0.))
 
@@ -123,7 +123,7 @@ class Pa10Xode(XODEfile):
                 passSet=['arm'], euler=w1_euler, mass=w1_mass)
 
         # Create a joint between E1 and W1
-        self.insertJoint('pa10_e1', 'pa10_w1', type='fixed',#type='hinge',
+        self.insertJoint('pa10_e1', 'pa10_w1', type='hinge',
                 axis={'x':0, 'y':0, 'z':1},
                 anchor=(0., y_floor+s1_size[1]+s2_size[1]+e1_size[1], 0.))
 

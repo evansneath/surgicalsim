@@ -10,8 +10,10 @@ class Pa10Task(EpisodicTask):
         EpisodicTask.__init__(self, env)
 
         # Take the defined max torque from the Pa10Environment as max power
-        self.maxPower = self.env.torque_max
-        print 'MAX TORQUE: %f' % self.maxPower
+
+        # TODO: Determine the appropriate masses for all parts then switch
+        # back to using torque_max
+        self.maxPower = 23.0#self.env.torque_max
 
         # Holds all rewards given in each episode
         self.reward_history = []
@@ -48,9 +50,11 @@ class Pa10Task(EpisodicTask):
 
         # Update the number of sensors
         self.env.obsLen = self.env.outdim
+
+        old_act_num = self.env.actLen
         self.env.actLen = self.env.indim
 
-        # Add the sensor limits of this sensor to the list (3 dimensions)
+        # Add the sensor limits of the tooltip sensor to the list (3 dimensions)
         for i in range(3):
             self.sensor_limits.append((-4, 4))
 
@@ -114,7 +118,7 @@ class Pa10MovementTask(Pa10Task):
         self.old_tooltip_pos = array(self.env.getSensorByName('tooltipPos'))
 
         # Define the position of the target to hit
-        self.target_pos = array([1.0, 1.0, 0.0])
+        self.target_pos = array([0.5, y_floor+0.5, 0.0])
 
         # Initialize distance between the tooltip and target
         self.distance = 0.
@@ -138,8 +142,8 @@ class Pa10MovementTask(Pa10Task):
         sensors = Pa10Task.getObservation(self)
 
         # Print out some debug stuff every time we run an episode
-        if self.count % self.epiLen == 0:
-            self.printDebug()
+        #if self.count % self.epiLen == 0:
+        #    self.printDebug()
         #    print 'TOOLTIP:', self.tooltip_pos
         #    print 'SENSOR NAMES:', self.env.getSensorNames()
         #    print 'SENSOR VALUES:', sensors
@@ -159,10 +163,11 @@ class Pa10MovementTask(Pa10Task):
 
     def isFinished(self):
         # If we hit the point, we're done here
-        if self.distance == 0.:
-            print 'FINISHED %d: Reached target' % self.incLearn
-            self.res()
-            return True
+        # TODO: Uncomment this when an incentive is given to hit the target
+        #if self.distance == 0.:
+        #    print 'FINISHED %d: Reached target' % self.incLearn
+        #    self.res()
+        #    return True
 
         # Perform the normal time-check to determine if we are done
         result = Pa10Task.isFinished(self)

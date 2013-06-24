@@ -38,8 +38,7 @@ class Pa10Environment(ODEEnvironment):
         torque_w1_pivot_norm = 0.36 / float(self.torque_max)
 
         # Set joint max torques
-        # TODO: UNCOMMENT
-        torques = [torque_s2_pivot_norm]#, torque_e1_pivot_norm, torque_w1_pivot_norm]
+        torques = [torque_s2_pivot_norm, torque_e1_pivot_norm, torque_w1_pivot_norm]
         self.torqueList = array(torques)
         self.tourqueList = self.torqueList
 
@@ -49,9 +48,8 @@ class Pa10Environment(ODEEnvironment):
         w1_angle = 0.45
 
         # Set joint max/min rotation angles
-        # TODO: UNCOMMENT
-        self.cHighList = array([s2_angle])#, e1_angle, w1_angle])
-        self.cLowList = array([-s2_angle])#, -e1_angle, -w1_angle])
+        self.cHighList = array([s2_angle, e1_angle, w1_angle])
+        self.cLowList = array([-s2_angle, -e1_angle, -w1_angle])
 
         self.stepsPerAction = 1
 
