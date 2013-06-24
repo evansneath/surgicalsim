@@ -2,11 +2,12 @@
 
 from pa10 import Pa10Xode, Pa10Environment, Pa10MovementTask
 
-from pybrain.structure.modules.tanhlayer import TanhLayer
-from pybrain.tools.shortcuts import buildNetwork
-from pybrain.rl.agents import OptimizationAgent
 from pybrain.optimization import PGPE
+from pybrain.structure.modules.tanhlayer import TanhLayer
+from pybrain.rl.agents import OptimizationAgent
 from pybrain.rl.experiments import EpisodicExperiment
+from pybrain.tools.example_tools import ExTools
+from pybrain.tools.shortcuts import buildNetwork
 
 import os.path
 
@@ -43,9 +44,14 @@ def run_experiment():
     HIDDEN_NODES = 4
 
     RUNS = 10
-    EPISODES = 5000000
+    BATCHES = 1
+    PRINTS = 1
+    EPISODES = 10#5000000
 
     env = None
+
+    # Set up plotting tools for the experiments
+    tools = ExTools(BATCHES, PRINTS)
 
     # Run the experiment
     for run in range(RUNS):
@@ -64,13 +70,21 @@ def run_experiment():
 
         # Create the learning agent
         agent = OptimizationAgent(net, PGPE(storeAllEvaluations=True))
+        tools.agent = agent
 
         # Create the experiment
         experiment = EpisodicExperiment(task, agent)
 
         for episode in range(EPISODES):
-            # Run one episode of the experiment
-            experiment.doEpisodes(1)
+            for plot in range(PRINTS):
+                # Run one episode of the experiment
+                experiment.doEpisodes(BATCHES)
+
+            tools.printResults((agent.learner._allEvaluations)[-50:-1], run, episode)
+
+        tools.addExps()
+
+    tools.showExps()
 
     return
 

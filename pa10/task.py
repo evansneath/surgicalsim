@@ -172,5 +172,5 @@ class Pa10MovementTask(Pa10Task):
     def getReward(self):
         # The reward is determined by the distance from the target point and
         # if the arm is actively moving to fix its position
-        reward = (self.velocity * (1 / (self.distance + 0.1))) / self.epiLen
+        reward = (1 / (self.distance + 0.1)) / self.epiLen
         return reward
