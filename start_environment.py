@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from pa10 import Pa10Xode, Pa10Environment, Pa10MovementTask
+from pa10 import Pa10Xode, Pa10StickXode, Pa10Environment, Pa10MovementTask
 
 from pybrain.optimization import PGPE
 from pybrain.structure.modules.tanhlayer import TanhLayer
@@ -19,7 +19,8 @@ def create_environment():
     if os.path.exists('./'+xode_name+'.xode'):
         os.remove('./'+xode_name+'.xode')
 
-    xode = Pa10Xode(xode_name)
+    #xode = Pa10Xode(xode_name)
+    xode = Pa10StickXode(xode_name)
     xode.writeXODE('./'+xode_name)
 
     # Create the environment

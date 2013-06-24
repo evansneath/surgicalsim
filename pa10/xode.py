@@ -181,4 +181,14 @@ class Pa10StickXode(Pa10Xode):
         """Adds a stick for the PA-10 arm to interact with."""
         Pa10Xode.__init__(self, name, **kwargs)
 
+        y_floor = -1.5
+
+        self.insertBody(bname='ball', shape='sphere',
+                size=[0.06], density=0., pos=[0.8, y_floor+0.5, 0.0],
+                passSet=['arm'], euler=[0., 0., 0.], mass=0.1)
+
+        # Fix the base of the robot to the environment. This prevents tipping
+        self.insertJoint('pa10_s1', 'ball', type='fixed')
+
+
         return

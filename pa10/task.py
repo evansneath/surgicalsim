@@ -118,7 +118,7 @@ class Pa10MovementTask(Pa10Task):
         self.old_tooltip_pos = array(self.env.getSensorByName('tooltipPos'))
 
         # Define the position of the target to hit
-        self.target_pos = array([0.5, y_floor+0.5, 0.0])
+        self.target_pos = array([0.8, y_floor+0.5, 0.0])
 
         # Initialize distance between the tooltip and target
         self.distance = 0.
