@@ -114,7 +114,7 @@ class Pa10MovementTask(Pa10Task):
         self.old_tooltip_pos = array(self.env.getSensorByName('tooltipPos'))
 
         # Define the position of the target to hit
-        self.target_pos = array([0., y_floor+1.5, 0.])
+        self.target_pos = array([1.0, 1.0, 0.0])
 
         # Initialize distance between the tooltip and target
         self.distance = 0.
@@ -138,8 +138,8 @@ class Pa10MovementTask(Pa10Task):
         sensors = Pa10Task.getObservation(self)
 
         # Print out some debug stuff every time we run an episode
-        #if self.count % self.epiLen == 0:
-        #    self.printDebug()
+        if self.count % self.epiLen == 0:
+            self.printDebug()
         #    print 'TOOLTIP:', self.tooltip_pos
         #    print 'SENSOR NAMES:', self.env.getSensorNames()
         #    print 'SENSOR VALUES:', sensors
@@ -165,9 +165,9 @@ class Pa10MovementTask(Pa10Task):
             return True
 
         # Perform the normal time-check to determine if we are done
-        Pa10Task.isFinished(self)
+        result = Pa10Task.isFinished(self)
 
-        return
+        return result
 
     def getReward(self):
         # The reward is determined by the distance from the target point and

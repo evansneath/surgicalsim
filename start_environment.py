@@ -46,7 +46,7 @@ def run_experiment():
     RUNS = 10
     BATCHES = 1
     PRINTS = 1
-    EPISODES = 10#5000000
+    EPISODES = 5000000
 
     env = None
 
