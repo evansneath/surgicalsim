@@ -17,21 +17,36 @@ class Pa10Xode(XODEfile):
         # this, calculations are done to find relative position in the world
 
         # Create the S1 (Shoulder) segment
-        s1_size = [0.220, 0.315, 0.220]
-        s1_pos = [0., y_floor+(s1_size[1]/2), 0.]
-        s1_euler = [0., 0., 0.]
-        s1_mass = 1.#100
+        s1_height = 0.315
 
-        self.insertBody(bname='pa10_s1', shape='box',
-                size=s1_size, density=0., pos=s1_pos,
-                passSet=['arm'], euler=s1_euler, mass=s1_mass)
+        s1_p1_size = [0.220, s1_height/2.0, 0.220]
+        s1_p1_pos = [0., y_floor+(s1_p1_size[1]/2.0), 0.]
+        s1_p1_euler = [0., 0., 0.]
+        s1_p1_mass = 1.#100
+
+        self.insertBody(bname='pa10_s1_p1', shape='box',
+                size=s1_p1_size, density=0., pos=s1_p1_pos,
+                passSet=['arm'], euler=s1_p1_euler, mass=s1_p1_mass)
 
         # Fix the base of the robot to the environment. This prevents tipping
-        self.affixToEnvironment('pa10_s1')
+        self.affixToEnvironment('pa10_s1_p1')
+
+        s1_p2_size = [0.220, s1_height/2.0, 0.220]
+        s1_p2_pos = [0., y_floor+s1_p1_size[1]+(s1_p2_size[1]/2.0), 0.]
+        s1_p2_euler = [0., 0., 0.]
+        s1_p2_mass = 1.#100
+
+        self.insertBody(bname='pa10_s1_p2', shape='box',
+                size=s1_p2_size, density=0., pos=s1_p2_pos,
+                passSet=['arm'], euler=s1_p2_euler, mass=s1_p2_mass)
+
+        # Create a rotational joint for the S1 segment
+        self.insertJoint('pa10_s1_p1', 'pa10_s1_p2', type='hinge',
+                axis={'x':0, 'y':1, 'z':0}, anchor=(0., y_floor+s1_p1_size[1], 0.))
 
         # Create the S2 (Shoulder) segment
         s2_size = [0.094, 0.450, 0.094]
-        s2_pos = [0., y_floor+s1_size[1]+(s2_size[1]/2), 0.]
+        s2_pos = [0., y_floor+s1_height+(s2_size[1]/2), 0.]
         s2_euler = [0., 0., 0.]
         s2_mass = 1.#20
 
@@ -40,12 +55,12 @@ class Pa10Xode(XODEfile):
                 passSet=['arm'], euler=s2_euler, mass=s2_mass)
 
         # Create a joint between S1 and S2
-        self.insertJoint('pa10_s1', 'pa10_s2', type='hinge',
-                axis={'x':0, 'y':0, 'z':1}, anchor=(0., y_floor+s1_size[1], 0.))
+        self.insertJoint('pa10_s1_p2', 'pa10_s2', type='hinge',
+                axis={'x':0, 'y':0, 'z':1}, anchor=(0., y_floor+s1_height, 0.))
 
         # Add a cylinder at the joint to make it look better
-        j1_size = [s1_size[0]/2, s1_size[0]]
-        j1_pos = [0., y_floor+s1_size[1], 0.]
+        j1_size = [s1_p2_size[0]/2, s1_p2_size[0]]
+        j1_pos = [0., y_floor+s1_height, 0.]
         j1_euler = [0., 0., 0.]
         j1_mass = 0.1
 
@@ -54,7 +69,7 @@ class Pa10Xode(XODEfile):
                 passSet=['arm'], euler=j1_euler, mass=j1_mass)
 
         # Attach J1 to S1
-        self.insertJoint('pa10_j1', 'pa10_s1', type='fixed')
+        self.insertJoint('pa10_j1', 'pa10_s1_p2', type='fixed')
 
         # Add a white ring at the joint to see the joint direction better
         j2_size = [j1_size[0]+0.001, 0.01]
@@ -68,11 +83,11 @@ class Pa10Xode(XODEfile):
                 passSet=['arm'], euler=j2_euler, mass=j2_mass, color=j2_color)
 
         # Attach J2 to S1
-        self.insertJoint('pa10_j2', 'pa10_s1', type='fixed')
+        self.insertJoint('pa10_j2', 'pa10_s1_p2', type='fixed')
 
         # Create the E1 (Elbow) segment
         e1_size = [0.0585, 0.500, 0.0585]
-        e1_pos = [0., y_floor+s1_size[1]+s2_size[1]+(e1_size[1]/2), 0.]
+        e1_pos = [0., y_floor+s1_height+s2_size[1]+(e1_size[1]/2), 0.]
         e1_euler = [0., 0., 0.]
         e1_mass = 1#15
 
@@ -83,11 +98,11 @@ class Pa10Xode(XODEfile):
         # Create a joint between S2 and E1
         self.insertJoint('pa10_s2', 'pa10_e1', type='hinge',
                 axis={'x':0, 'y':0, 'z':1},
-                anchor=(0., y_floor+s1_size[1]+s2_size[1], 0.))
+                anchor=(0., y_floor+s1_height+s2_size[1], 0.))
 
         # Add a cylinder at the joint to make it look better
         j3_size = [s2_size[0]/2, s2_size[0]]
-        j3_pos = [0., y_floor+s1_size[1]+s2_size[1], 0.]
+        j3_pos = [0., y_floor+s1_height+s2_size[1], 0.]
         j3_euler = [0., 0., 0.]
         j3_mass = 0.1
 
@@ -114,7 +129,7 @@ class Pa10Xode(XODEfile):
 
         # Create the W1 (Wrist) segment
         w1_size = [0.043, 0.08, 0.043]
-        w1_pos = [0., y_floor+s1_size[1]+s2_size[1]+e1_size[1]+(w1_size[1]/2), 0.]
+        w1_pos = [0., y_floor+s1_height+s2_size[1]+e1_size[1]+(w1_size[1]/2), 0.]
         w1_euler = [0., 0., 0.]
         w1_mass = 1#10
 
@@ -125,11 +140,11 @@ class Pa10Xode(XODEfile):
         # Create a joint between E1 and W1
         self.insertJoint('pa10_e1', 'pa10_w1', type='hinge',
                 axis={'x':0, 'y':0, 'z':1},
-                anchor=(0., y_floor+s1_size[1]+s2_size[1]+e1_size[1], 0.))
+                anchor=(0., y_floor+s1_height+s2_size[1]+e1_size[1], 0.))
 
         # Add a cylinder at the joint to make it look better
         j5_size = [e1_size[0]/2, e1_size[0]]
-        j5_pos = [0., y_floor+s1_size[1]+s2_size[1]+e1_size[1], 0.]
+        j5_pos = [0., y_floor+s1_height+s2_size[1]+e1_size[1], 0.]
         j5_euler = [0., 0., 0.]
         j5_mass = 0.1
 
@@ -155,7 +170,7 @@ class Pa10Xode(XODEfile):
 
         # Create a tooltip to navigate through the gates
         t1_size = [0.005, 0.05]
-        t1_pos = [0., y_floor+s1_size[1]+s2_size[1]+e1_size[1]+w1_size[1]+(t1_size[1]/2), 0.]
+        t1_pos = [0., y_floor+s1_height+s2_size[1]+e1_size[1]+w1_size[1]+(t1_size[1]/2), 0.]
         t1_euler = [90., 0., 0.]
         t1_mass = 0.1
         t1_color = (255, 0, 0, 255) # red
@@ -171,12 +186,12 @@ class Pa10Xode(XODEfile):
         self.insertFloor(y=y_floor)
 
         # Focus on the base of the arm
-        self.centerOn('pa10_s1')
+        self.centerOn('pa10_s1_p1')
 
         return
 
 
-class Pa10StickXode(Pa10Xode):
+class Pa10BallXode(Pa10Xode):
     def __init__(self, name, **kwargs):
         """Adds a stick for the PA-10 arm to interact with."""
         Pa10Xode.__init__(self, name, **kwargs)
@@ -184,11 +199,10 @@ class Pa10StickXode(Pa10Xode):
         y_floor = -1.5
 
         self.insertBody(bname='ball', shape='sphere',
-                size=[0.06], density=0., pos=[0.8, y_floor+0.5, 0.0],
+                size=[0.03], density=0., pos=[0.5, y_floor+0.5, 0.5],
                 passSet=['arm'], euler=[0., 0., 0.], mass=0.1)
 
-        # Fix the base of the robot to the environment. This prevents tipping
-        self.insertJoint('pa10_s1', 'ball', type='fixed')
-
+        # Fix the ball to the immobile base of the robot
+        self.insertJoint('pa10_s1_p1', 'ball', type='fixed')
 
         return

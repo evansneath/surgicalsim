@@ -117,46 +117,75 @@ class Pa10MovementTask(Pa10Task):
         self.tooltip_pos = array(self.env.getSensorByName('tooltipPos'))
         self.old_tooltip_pos = array(self.env.getSensorByName('tooltipPos'))
 
+        # Define velocity and acceleration values
+        self.velocity = 0.0
+        self.old_velocity = 0.0
+
+        self.acceleration = 0.0
+
         # Define the position of the target to hit
-        self.target_pos = array([0.8, y_floor+0.5, 0.0])
+        self.target_pos = array([0.5, y_floor+0.5, 0.5])
 
         # Initialize distance between the tooltip and target
-        self.distance = 0.
+        self.distance_to_target = self.calc_distance(
+                self.tooltip_pos,
+                self.target_pos
+        )
+
+        self.smoothness_total = 0.0
 
         return
 
-    def getObservation(self):
-        # Collect data about the world at each step
+    def calc_distance(self, source, destination):
+        """Calculate Distance
 
-        # Get the current tooltip location
+        Calculate the distance between any two points in the environment.
+
+        Arguments:
+            source: The start point.
+            destination: The target point.
+        """
+        return sqrt(((source - destination) ** 2).sum())
+
+    def getObservation(self):
+        # Collect data about the world at each moment
+
+        # Get the current tooltip location [m]
         self.tooltip_pos = array(self.env.getSensorByName('tooltipPos'))
 
-        # Calculate the straightline distance from the arm to the target point
-        self.distance = sqrt(((self.tooltip_pos - self.target_pos) ** 2).sum())
+        # Calculate the straightline distance from the arm to the target point [m]
+        self.distance_to_target = self.calc_distance(
+                self.tooltip_pos,
+                self.target_pos
+        )
 
-        self.difference = sqrt(((self.tooltip_pos - self.old_tooltip_pos) ** 2).sum())
-        self.velocity = self.difference / self.env.dt
+        # Calculate the distance of the tooltip from the previous moment [m]
+        pos_difference = self.calc_distance(
+                self.tooltip_pos,
+                self.old_tooltip_pos
+        )
+        
+        # Calculate the velocity for this moment [m/s]
+        self.velocity = pos_difference / self.env.dt
 
+        # Calculate the acceleration of this moment [m/s^2]
+        self.acceleration = absolute(self.velocity - self.old_velocity)
+
+        # Set the values of this moment as "old" values
+        self.old_velocity = self.velocity
         self.old_tooltip_pos = self.tooltip_pos
 
         sensors = Pa10Task.getObservation(self)
 
-        # Print out some debug stuff every time we run an episode
-        #if self.count % self.epiLen == 0:
-        #    self.printDebug()
-        #    print 'TOOLTIP:', self.tooltip_pos
-        #    print 'SENSOR NAMES:', self.env.getSensorNames()
-        #    print 'SENSOR VALUES:', sensors
-
         return sensors
 
-    def printDebug(self):
+    def print_point_debug(self):
         # Just print out information of the location of everything
         print ('Tooltip is at: (x=%f, y=%f, z=%f)' %
                (self.tooltip_pos[0], self.tooltip_pos[1], self.tooltip_pos[2]))
         print ('Target is at: (x=%f, y=%f, z=%f)' %
                (self.target_pos[0], self.target_pos[1], self.target_pos[2]))
-        print 'Difference is %f meters' % self.distance
+        print 'Distance to target is %f m' % self.distance
         print 'Velocity is %f m/s' % self.velocity
 
         return
@@ -164,8 +193,8 @@ class Pa10MovementTask(Pa10Task):
     def isFinished(self):
         # If we hit the point, we're done here
         # TODO: Uncomment this when an incentive is given to hit the target
-        #if self.distance == 0.:
-        #    print 'FINISHED %d: Reached target' % self.incLearn
+        #if self.distance <= 0.04 and not self.reached_target:
+        #    print 'Reached target at time %d/%d' % (self.count, self.epiLen)
         #    self.res()
         #    return True
 
@@ -175,7 +204,15 @@ class Pa10MovementTask(Pa10Task):
         return result
 
     def getReward(self):
+        # NOTE: A reward is given at every point in time in the episode
+
         # The reward is determined by the distance from the target point and
         # if the arm is actively moving to fix its position
-        reward = (1 / (self.distance + 0.1)) / self.epiLen
+        distance_reward = 1.0 / (self.distance_to_target + 0.1)
+
+        # Reward a low amount of acceleration for each moment
+        #smoothness_reward = 1.0 / (self.acceleration + 1.0)
+
+        reward = distance_reward / self.epiLen
+
         return reward

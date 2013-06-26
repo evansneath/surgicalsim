@@ -33,23 +33,44 @@ class Pa10Environment(ODEEnvironment):
         # The torque values for the joints are normalized from the max torque in the env
         self.torque_max = 5.3
 
-        torque_s2_pivot_norm = 5.3 / float(self.torque_max)
-        torque_e1_pivot_norm = 2. / float(self.torque_max)
-        torque_w1_pivot_norm = 0.36 / float(self.torque_max)
+        torque_s1_rotate_norm = 5.3 / self.torque_max
+        torque_s2_pivot_norm = 5.3 / self.torque_max
+
+        torque_s3_rotate_norm = 2.0 / self.torque_max
+        torque_e1_pivot_norm = 2.0 / self.torque_max
+
+        torque_e2_rotate_norm = 0.36 / self.torque_max
+        torque_w1_pivot_norm = 0.36 / self.torque_max
+        torque_w2_rotate_norm = 0.36 / self.torque_max
 
         # Set joint max torques
-        torques = [torque_s2_pivot_norm, torque_e1_pivot_norm, torque_w1_pivot_norm]
+        torques = [
+            torque_s1_rotate_norm,
+            torque_s2_pivot_norm,
+            torque_e1_pivot_norm,
+            torque_w1_pivot_norm
+        ]
+
         self.torqueList = array(torques)
+
+        # PyBrain devs spelled "Torque" incorrectly... torqueList is a inherited attribute
         self.tourqueList = self.torqueList
 
         # Define joint max/min rotation angles (normalized by 360 degrees)
-        s2_angle = 0.25
-        e1_angle = 0.38
-        w1_angle = 0.45
+        rotation = 360.0
+        s1_angle = 177.0 / rotation
+        s2_angle =  91.0 / rotation
+        s3_angle = 174.0 / rotation
+
+        e1_angle = 137.0 / rotation
+        e2_angle = 255.0 / rotation
+
+        w1_angle = 165.0 / rotation
+        w2_angle = 360.0 / rotation
 
         # Set joint max/min rotation angles
-        self.cHighList = array([s2_angle, e1_angle, w1_angle])
-        self.cLowList = array([-s2_angle, -e1_angle, -w1_angle])
+        self.cHighList = array([s1_angle, s2_angle, e1_angle, w1_angle])
+        self.cLowList = array([-s1_angle, -s2_angle, -e1_angle, -w1_angle])
 
         self.stepsPerAction = 1
 
