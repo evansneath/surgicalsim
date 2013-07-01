@@ -58,7 +58,7 @@ class Pa10Environment(ODEEnvironment):
 
         # Define joint max/min rotation angles (normalized by 360 degrees)
         rotation = 360.0
-        s1_angle = 177.0 / rotation
+        s1_angle = 360.0 / rotation #177.0 / rotation
         s2_angle =  91.0 / rotation
         s3_angle = 174.0 / rotation
 

@@ -49,7 +49,7 @@ def run_experiment():
     RUNS = 10
     BATCHES = 1
     PRINTS = 1
-    EPISODES = 200
+    EPISODES = 500
 
     env = None
 
@@ -85,7 +85,6 @@ def run_experiment():
         for episode in range(EPISODES):
             experiment.doEpisodes(BATCHES)
             tools.printResults((agent.learner._allEvaluations)[-50:-1], run, episode)
-            print agent.learner._allEvaluations
 
         #tools.addExps()
 
