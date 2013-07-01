@@ -11,6 +11,8 @@ from pybrain.tools.shortcuts import buildNetwork
 
 import os.path
 
+import numpy as np
+
 
 def create_environment():
     # Generate the xode file for world creation
@@ -47,9 +49,11 @@ def run_experiment():
     RUNS = 10
     BATCHES = 1
     PRINTS = 1
-    EPISODES = 100
+    EPISODES = 200
 
     env = None
+
+    run_results = []
 
     # Set up plotting tools for the experiments
     tools = ExTools(BATCHES, PRINTS)
@@ -79,15 +83,24 @@ def run_experiment():
         experiment = EpisodicExperiment(task, agent)
 
         for episode in range(EPISODES):
-            for plot in range(PRINTS):
-                # Run one episode of the experiment
-                experiment.doEpisodes(BATCHES)
-
+            experiment.doEpisodes(BATCHES)
             tools.printResults((agent.learner._allEvaluations)[-50:-1], run, episode)
+            print agent.learner._allEvaluations
 
-        tools.addExps()
+        #tools.addExps()
 
-    tools.showExps()
+        all_results = agent.learner._allEvaluations
+        max_result = np.max(all_results)
+        avg_result = np.sum(all_results) / len(all_results)
+        run_results.append((run, max_result, avg_result))
+
+    #tools.showExps()
+
+    # Print the results table
+    for result in run_results:
+        print 'RUN: %d' % result[0]
+        print 'MAX: %4f' % result[1]
+        print 'AVG: %4f\n' % result[2]
 
     return
 
