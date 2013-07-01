@@ -16,13 +16,27 @@ class Pa10Xode(XODEfile):
         # NOTE: The position of the shape refers to its center. To accomodate
         # this, calculations are done to find relative position in the world
 
+        # Link masses [kg] (provided my Manufacturer)
+        # (http://guppy.mpe.nus.edu.sg/~mpeangh/PA-10.html)
+        # m2 = 8.41
+        # m3 = 3.51
+        # m4 = 4.31
+        # m5 = 3.45
+        # m6 = 1.46
+        # m7 = 0.24
+
+        # TODO: Model the PA-10 more accurately such that the masses correspond
+        # to the specific links of the arm. Check the 'modeling dynamics of PA-10'
+        # paper for more information about the link locations.
+
         # Create the S1 (Shoulder) segment
-        s1_height = 0.315
+        s1_height = 0.315 # [m]
+        s1_mass = 8.41 # [kg]
 
         s1_p1_size = [0.220, s1_height/2.0, 0.220]
         s1_p1_pos = [0., y_floor+(s1_p1_size[1]/2.0), 0.]
         s1_p1_euler = [0., 0., 0.]
-        s1_p1_mass = 1.#100
+        s1_p1_mass = s1_mass / 2
 
         self.insertBody(bname='pa10_s1_p1', shape='box',
                 size=s1_p1_size, density=0., pos=s1_p1_pos,
@@ -34,7 +48,7 @@ class Pa10Xode(XODEfile):
         s1_p2_size = [0.220, s1_height/2.0, 0.220]
         s1_p2_pos = [0., y_floor+s1_p1_size[1]+(s1_p2_size[1]/2.0), 0.]
         s1_p2_euler = [0., 0., 0.]
-        s1_p2_mass = 1.#100
+        s1_p2_mass = s1_mass / 2
 
         self.insertBody(bname='pa10_s1_p2', shape='box',
                 size=s1_p2_size, density=0., pos=s1_p2_pos,
@@ -48,7 +62,7 @@ class Pa10Xode(XODEfile):
         s2_size = [0.094, 0.450, 0.094]
         s2_pos = [0., y_floor+s1_height+(s2_size[1]/2), 0.]
         s2_euler = [0., 0., 0.]
-        s2_mass = 1.#20
+        s2_mass = 3.51 # [kg]
 
         self.insertBody(bname='pa10_s2', shape='box',
                 size=s2_size, density=0., pos=s2_pos,
@@ -62,7 +76,7 @@ class Pa10Xode(XODEfile):
         j1_size = [s1_p2_size[0]/2, s1_p2_size[0]]
         j1_pos = [0., y_floor+s1_height, 0.]
         j1_euler = [0., 0., 0.]
-        j1_mass = 0.1
+        j1_mass = 0.01 # [kg]
 
         self.insertBody(bname='pa10_j1', shape='cylinder',
                 size=j1_size, density=0., pos=j1_pos,
@@ -75,7 +89,7 @@ class Pa10Xode(XODEfile):
         j2_size = [j1_size[0]+0.001, 0.01]
         j2_pos = j1_pos
         j2_euler = [0., 0., 0.]
-        j2_mass = 0.1
+        j2_mass = 0.01 # [kg]
         j2_color = (255, 255, 255, 255)
 
         self.insertBody(bname='pa10_j2', shape='cylinder',
@@ -89,11 +103,12 @@ class Pa10Xode(XODEfile):
         e1_size = [0.0585, 0.500, 0.0585]
         e1_pos = [0., y_floor+s1_height+s2_size[1]+(e1_size[1]/2), 0.]
         e1_euler = [0., 0., 0.]
-        e1_mass = 1#15
+        e1_mass = 4.31 # [kg]
+        e1_color = (255, 0, 0, 255)
 
         self.insertBody(bname='pa10_e1', shape='box',
                 size=e1_size, density=0., pos=e1_pos,
-                passSet=['arm'], euler=e1_euler, mass=e1_mass)
+                passSet=['arm'], euler=e1_euler, mass=e1_mass, color=e1_color)
 
         # Create a joint between S2 and E1
         self.insertJoint('pa10_s2', 'pa10_e1', type='hinge',
@@ -104,7 +119,7 @@ class Pa10Xode(XODEfile):
         j3_size = [s2_size[0]/2, s2_size[0]]
         j3_pos = [0., y_floor+s1_height+s2_size[1], 0.]
         j3_euler = [0., 0., 0.]
-        j3_mass = 0.1
+        j3_mass = 0.01 # [kg]
 
         self.insertBody(bname='pa10_j3', shape='cylinder',
                 size=j3_size, density=0., pos=j3_pos,
@@ -117,7 +132,7 @@ class Pa10Xode(XODEfile):
         j4_size = [j3_size[0]+0.001, 0.01]
         j4_pos = j3_pos
         j4_euler = [0., 0., 0.]
-        j4_mass = 0.1
+        j4_mass = 0.01 # [kg]
         j4_color = (255, 255, 255, 255)
 
         self.insertBody(bname='pa10_j4', shape='cylinder',
@@ -131,7 +146,7 @@ class Pa10Xode(XODEfile):
         w1_size = [0.043, 0.08, 0.043]
         w1_pos = [0., y_floor+s1_height+s2_size[1]+e1_size[1]+(w1_size[1]/2), 0.]
         w1_euler = [0., 0., 0.]
-        w1_mass = 1#10
+        w1_mass = 1.46 # [kg]
 
         self.insertBody(bname='pa10_w1', shape='box',
                 size=w1_size, density=0., pos=w1_pos,
@@ -146,7 +161,7 @@ class Pa10Xode(XODEfile):
         j5_size = [e1_size[0]/2, e1_size[0]]
         j5_pos = [0., y_floor+s1_height+s2_size[1]+e1_size[1], 0.]
         j5_euler = [0., 0., 0.]
-        j5_mass = 0.1
+        j5_mass = 0.1 # [kg]
 
         self.insertBody(bname='pa10_j5', shape='cylinder',
                 size=j5_size, density=0., pos=j5_pos,
@@ -158,7 +173,7 @@ class Pa10Xode(XODEfile):
         j6_size = [j5_size[0]+0.001, 0.01]
         j6_pos = j5_pos
         j6_euler = [0., 0., 0.]
-        j6_mass = 0.1
+        j6_mass = 0.1 # [kg]
         j6_color = (255, 255, 255, 255)
 
         self.insertBody(bname='pa10_j6', shape='cylinder',
@@ -172,7 +187,7 @@ class Pa10Xode(XODEfile):
         t1_size = [0.005, 0.05]
         t1_pos = [0., y_floor+s1_height+s2_size[1]+e1_size[1]+w1_size[1]+(t1_size[1]/2), 0.]
         t1_euler = [90., 0., 0.]
-        t1_mass = 0.1
+        t1_mass = 0.24 # [kg]
         t1_color = (255, 0, 0, 255) # red
 
         self.insertBody(bname='pa10_t1', shape='cylinder',
@@ -199,7 +214,7 @@ class Pa10BallXode(Pa10Xode):
         y_floor = -1.5
 
         self.insertBody(bname='ball', shape='sphere',
-                size=[0.03], density=0., pos=[0.5, y_floor+0.5, 0.5],
+                size=[0.03], density=0., pos=[-0.5, y_floor+0.5, -0.5],
                 passSet=['arm'], euler=[0., 0., 0.], mass=0.1)
 
         # Fix the ball to the immobile base of the robot

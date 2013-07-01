@@ -13,7 +13,7 @@ class Pa10Task(EpisodicTask):
 
         # TODO: Determine the appropriate masses for all parts then switch
         # back to using torque_max
-        self.maxPower = 23.0#self.env.torque_max
+        self.maxPower = 50.0#self.env.torque_max
 
         # Holds all rewards given in each episode
         self.reward_history = []
@@ -31,7 +31,7 @@ class Pa10Task(EpisodicTask):
         self.env.FricMu = 20.0
 
         # Real-world time for each time step
-        self.env.dt = 0.01#0.0008
+        self.env.dt = 0.01
 
         # Add all actuators to the sensor limits
         self.sensor_limits = []
@@ -124,7 +124,7 @@ class Pa10MovementTask(Pa10Task):
         self.acceleration = 0.0
 
         # Define the position of the target to hit
-        self.target_pos = array([0.5, y_floor+0.5, 0.5])
+        self.target_pos = array([-0.5, y_floor+0.5, -0.5])
 
         # Initialize distance between the tooltip and target
         self.distance_to_target = self.calc_distance(

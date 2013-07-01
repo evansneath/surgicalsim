@@ -47,7 +47,7 @@ def run_experiment():
     RUNS = 10
     BATCHES = 1
     PRINTS = 1
-    EPISODES = 5000000
+    EPISODES = 100
 
     env = None
 
@@ -66,8 +66,10 @@ def run_experiment():
         # Create the task
         task = Pa10MovementTask(env)
 
+        new_hidden_nodes = HIDDEN_NODES + run
+
         # Create the neural network
-        net = buildNetwork(len(task.getObservation()), HIDDEN_NODES, env.actLen, outclass=TanhLayer)
+        net = buildNetwork(len(task.getObservation()), new_hidden_nodes, env.actLen, outclass=TanhLayer)
 
         # Create the learning agent
         agent = OptimizationAgent(net, PGPE(storeAllEvaluations=True))
