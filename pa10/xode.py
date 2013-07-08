@@ -104,11 +104,10 @@ class Pa10Xode(XODEfile):
         e1_pos = [0., y_floor+s1_height+s2_size[1]+(e1_size[1]/2), 0.]
         e1_euler = [0., 0., 0.]
         e1_mass = 4.31 # [kg]
-        e1_color = (255, 0, 0, 255)
 
         self.insertBody(bname='pa10_e1', shape='box',
                 size=e1_size, density=0., pos=e1_pos,
-                passSet=['arm'], euler=e1_euler, mass=e1_mass, color=e1_color)
+                passSet=['arm'], euler=e1_euler, mass=e1_mass)
 
         # Create a joint between S2 and E1
         self.insertJoint('pa10_s2', 'pa10_e1', type='hinge',
@@ -214,8 +213,8 @@ class Pa10BallXode(Pa10Xode):
         y_floor = -1.5
 
         self.insertBody(bname='ball', shape='sphere',
-                size=[0.03], density=0., pos=[-0.5, y_floor+0.5, -0.5],
-                passSet=['arm'], euler=[0., 0., 0.], mass=0.1)
+                size=[0.03], density=0., pos=[0.5, y_floor+0.5, 0.5],
+                passSet=['arm'], euler=[0., 0., 0.], mass=0.1, color=(0, 0, 255, 255))
 
         # Fix the ball to the immobile base of the robot
         self.insertJoint('pa10_s1_p1', 'ball', type='fixed')

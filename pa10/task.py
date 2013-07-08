@@ -65,11 +65,10 @@ class Pa10Task(EpisodicTask):
         joints = array(self.env.getSensorByName('JointSensor'))
         speeds = array(self.env.getSensorByName('JointVelocitySensor'))
 
-        #if self.count % self.epiLen == 0:
-        #    print 'JOINTS:', joints, type(joints)
-        #    print 'SPEEDS:', speeds, type(speeds)
-
-        #    print 'ACTION:', action, type(action)
+        #if self.count % self.epiLen == 200:
+        #    print 'JOINTS:', joints
+        #    print 'SPEEDS:', speeds
+        #    print 'ACTION:', action
         #    print 'HIGH LIMIT:', self.env.cHighList, type(self.env.cHighList)
         #    print 'LOW LIMIT:', self.env.cLowList, type(self.env.cLowList)
         #    print 'TORQUES:', self.env.torqueList, type(self.env.torqueList)
@@ -116,6 +115,7 @@ class Pa10MovementTask(Pa10Task):
         # Set the current and old tooltip position attributes
         self.tooltip_pos = array(self.env.getSensorByName('tooltipPos'))
         self.old_tooltip_pos = array(self.env.getSensorByName('tooltipPos'))
+        self.tooltip_start = array(self.env.getSensorByName('tooltipPos'))
 
         # Define velocity and acceleration values
         self.velocity = 0.0
@@ -124,7 +124,7 @@ class Pa10MovementTask(Pa10Task):
         self.acceleration = 0.0
 
         # Define the position of the target to hit
-        self.target_pos = array([-0.5, y_floor+0.5, -0.5])
+        self.target_pos = array([0.5, y_floor+0.5, 0.5])
 
         # Initialize distance between the tooltip and target
         self.distance_to_target = self.calc_distance(
@@ -208,7 +208,7 @@ class Pa10MovementTask(Pa10Task):
 
         # The reward is determined by the distance from the target point and
         # if the arm is actively moving to fix its position
-        distance_reward = 1.0 / (self.distance_to_target + 0.1)
+        distance_reward = 1.0 / (self.distance_to_target + 0.001)
 
         # Reward a low amount of acceleration for each moment
         #smoothness_reward = 1.0 / (self.acceleration + 1.0)

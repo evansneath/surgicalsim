@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from pa10 import Pa10Xode, Pa10BallXode, Pa10Environment, Pa10MovementTask
+from pa10 import Pa10BallXode, Pa10Environment, Pa10MovementTask
 
 from pybrain.optimization import PGPE
 from pybrain.structure.modules.tanhlayer import TanhLayer
@@ -13,6 +13,7 @@ import os.path
 
 import numpy as np
 
+G_RESULTS_DIR = 'results'
 
 def create_environment():
     # Generate the xode file for world creation
@@ -70,10 +71,16 @@ def run_experiment():
         # Create the task
         task = Pa10MovementTask(env)
 
-        new_hidden_nodes = HIDDEN_NODES + run
+        # Determines if the neural network is to be recurrent or feed-forward
+        if run < 5:
+            # runs 0-4 are feed-forward
+            is_rnn = False
+        else:
+            # runs 5-9 are recurrent
+            is_rnn = True
 
         # Create the neural network
-        net = buildNetwork(len(task.getObservation()), new_hidden_nodes, env.actLen, outclass=TanhLayer)
+        net = buildNetwork(env.obsLen, HIDDEN_NODES, env.actLen, outclass=TanhLayer, recurrent=is_rnn)
 
         # Create the learning agent
         agent = OptimizationAgent(net, PGPE(storeAllEvaluations=True))
@@ -82,28 +89,39 @@ def run_experiment():
         # Create the experiment
         experiment = EpisodicExperiment(task, agent)
 
+        # Perform all episodes in the run
         for episode in range(EPISODES):
             experiment.doEpisodes(BATCHES)
-            tools.printResults((agent.learner._allEvaluations)[-50:-1], run, episode)
 
-        #tools.addExps()
+            # TODO: Look at the internals of this. Adjust as necessary
+            tools.printResults(agent.learner._allEvaluations[-50:-1], run, episode)
 
+        tools.addExps()
+
+        # Calculate results
         all_results = agent.learner._allEvaluations
         max_result = np.max(all_results)
+        min_result = np.min(all_results)
         avg_result = np.sum(all_results) / len(all_results)
-        run_results.append((run, max_result, avg_result))
+        run_results.append((run, max_result, min_result, avg_result))
 
-    #tools.showExps()
+        # Make the results directory if it does not exist
+        if not os.path.exists(G_RESULTS_DIR):
+            os.mkdir(G_RESULTS_DIR)
 
-    # Print the results table
-    for result in run_results:
-        print 'RUN: %d' % result[0]
-        print 'MAX: %4f' % result[1]
-        print 'AVG: %4f\n' % result[2]
+        # Write all results to the results file
+        with open(os.path.join(G_RESULTS_DIR, 'run_%d.txt' % run), 'w+') as f:
+            # Store the calculated max, min, avg
+            f.write('RUN, MAX, MIN, AVG\n')
+            f.write('%d, %f, %f, %f\n' % (run, max_result, min_result, avg_result))
+
+            # Store all results from this run
+            f.write('EPISODE, REWARD\n')
+            for episode, result in enumerate(all_results):
+                f.write('%d, %f\n' % (episode, result))
 
     return
 
 
 if __name__ == '__main__':
     run_experiment()
-    #run_forever()

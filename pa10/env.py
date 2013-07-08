@@ -5,7 +5,7 @@ Code modified from PyBrain CCRLGlas example model.
 """
 
 from pybrain.rl.environments.ode import ODEEnvironment, sensors, actuators
-from scipy import array
+from scipy import array, pi
 
 
 class Pa10Environment(ODEEnvironment):
@@ -33,7 +33,7 @@ class Pa10Environment(ODEEnvironment):
         # The torque values for the joints are normalized from the max torque in the env
         self.torque_max = 5.3
 
-        torque_s1_rotate_norm = 5.3 / self.torque_max
+        torque_s1_rotate_norm = 1.0 / self.torque_max#5.3 / self.torque_max
         torque_s2_pivot_norm = 5.3 / self.torque_max
 
         torque_s3_rotate_norm = 2.0 / self.torque_max
@@ -58,7 +58,7 @@ class Pa10Environment(ODEEnvironment):
 
         # Define joint max/min rotation angles (normalized by 360 degrees)
         rotation = 360.0
-        s1_angle = 360.0 / rotation #177.0 / rotation
+        s1_angle = 300.0 / rotation #177.0 / rotation
         s2_angle =  91.0 / rotation
         s3_angle = 174.0 / rotation
 
