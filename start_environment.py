@@ -47,10 +47,10 @@ def run_experiment():
     # Create the controller network
     HIDDEN_NODES = 4
 
-    RUNS = 10
+    RUNS = 2
     BATCHES = 1
     PRINTS = 1
-    EPISODES = 500
+    EPISODES = 1000
 
     env = None
 
@@ -72,7 +72,7 @@ def run_experiment():
         task = Pa10MovementTask(env)
 
         # Determines if the neural network is to be recurrent or feed-forward
-        if run < 5:
+        if run == 0:
             # runs 0-4 are feed-forward
             is_rnn = False
         else:

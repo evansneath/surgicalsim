@@ -2,7 +2,7 @@ __author__ = 'Evan Sneath, evansneath@gmail.com'
 
 from pybrain.rl.environments import EpisodicTask
 from pybrain.rl.environments.ode.sensors import SpecificBodyPositionSensor
-from scipy import tanh, array, sqrt, absolute
+from scipy import tanh, array, sqrt, absolute, pi
 
 
 class Pa10Task(EpisodicTask):
@@ -13,7 +13,8 @@ class Pa10Task(EpisodicTask):
 
         # TODO: Determine the appropriate masses for all parts then switch
         # back to using torque_max
-        self.maxPower = 50.0#self.env.torque_max
+        # power = torque * angular_velocity
+        self.maxPower = self.env.torque_max * 2.0 * pi
 
         # Holds all rewards given in each episode
         self.reward_history = []
@@ -22,13 +23,13 @@ class Pa10Task(EpisodicTask):
         self.count = 0
 
         # The number of timesteps in the episode
-        self.epiLen = 1000
+        self.epiLen = 1500
 
         # Counts the task resets for incremental learning
         self.incLearn = 0
 
         # Environment coefficient of friction
-        self.env.FricMu = 20.0
+        self.env.FricMu = 8.0#20.0
 
         # Real-world time for each time step
         self.env.dt = 0.01
@@ -44,9 +45,10 @@ class Pa10Task(EpisodicTask):
         # Set joint velocity sensor limits
         for i in range(self.env.actLen):
             self.sensor_limits.append((-20, 20))
+            #self.sensor_limits.append((-0.01, 0.01))
 
         # Add the PA-10 tooltip position sensor
-        self.env.addSensor(SpecificBodyPositionSensor(['pa10_t1'], 'tooltipPos'))
+        self.env.addSensor(SpecificBodyPositionSensor(['pa10_t2'], 'tooltipPos'))
 
         # Update the number of sensors
         self.env.obsLen = self.env.outdim
@@ -57,6 +59,9 @@ class Pa10Task(EpisodicTask):
         # Add the sensor limits of the tooltip sensor to the list (3 dimensions)
         for i in range(3):
             self.sensor_limits.append((-4, 4))
+        
+        print self.env.getSensorNames()
+        print self.env.getSensors()
 
         return
 
@@ -75,10 +80,33 @@ class Pa10Task(EpisodicTask):
         #    print 'MAX TORQUE:', self.maxPower, type(self.maxPower)
 
         # Convert all torques to anglular speeds
-        act = ((action + 1.0) / 2.0 * (self.env.cHighList -
-                  self.env.cLowList) + self.env.cLowList)
-        action = (tanh((act - joints - 0.9 * speeds * self.env.torqueList) *
+        #act = ((action + 1.0) / 2.0 * (self.env.cHighList -
+        #          self.env.cLowList) + self.env.cLowList)
+        #action = (tanh((act - joints - 0.9 * speeds * self.env.torqueList) *
+        #          16.0) * self.maxPower * self.env.torqueList)
+
+        # DEBUG
+        #if self.count % (self.epiLen / 2) == 0:
+        #    print 'IN ACTION:', action
+
+        # Change range from (-1.0, 1.0) to (0.0, 1.0)
+        action = (action + 1.0) / 2.0
+
+        # 
+        action = (action * (self.env.cHighList - self.env.cLowList) +
+                self.env.cLowList)
+        
+        # DEBUG
+        #if self.count % (self.epiLen / 2) == 0:
+        #    print 'INTERMEDIATE ACTION:', action
+
+        # Simple PID Controller
+        action = (tanh((action - joints - 0.9 * speeds * self.env.torqueList) *
                   16.0) * self.maxPower * self.env.torqueList)
+
+        # DEBUG
+        #if self.count % (self.epiLen / 2) == 0:
+        #    print 'OUT ACTION:', action
 
         #if self.count % self.epiLen == 0:
         #    print 'NEW ACTION:', action, type(action)
@@ -124,7 +152,7 @@ class Pa10MovementTask(Pa10Task):
         self.acceleration = 0.0
 
         # Define the position of the target to hit
-        self.target_pos = array([0.5, y_floor+0.5, 0.5])
+        self.target_pos = array([0.6, y_floor+0.5, 0.2])
 
         # Initialize distance between the tooltip and target
         self.distance_to_target = self.calc_distance(
