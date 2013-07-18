@@ -94,12 +94,14 @@ class Pa10Environment(ODEEnvironment):
         s2_angle = 45.0 / rotation
         s2_angle *= 2.0 * pi
 
-        s3_angle = 174.0 / rotation
+        s3_angle = 45.0 / rotation
+        s3_angle *= 2.0 * pi
 
         e1_angle = 137.0 / rotation
         e1_angle *= 2.0 * pi
 
         e2_angle = 255.0 / rotation
+        e2_angle *= 2.0 * pi
 
         w1_angle = 165.0 / rotation
         w1_angle *= 2.0 * pi
@@ -113,7 +115,7 @@ class Pa10Environment(ODEEnvironment):
             s3_angle,
             e1_angle,
             w1_angle,
-        ])# * 2.0 * pi
+        ])
 
         self.cLowList = array([
             #0.0,
@@ -121,15 +123,7 @@ class Pa10Environment(ODEEnvironment):
             -s3_angle,
             0.0,
             0.0,
-        ])# * 2.0 * pi
-
-        #self.cLowList = array([
-        #    -s1_angle,
-        #    -s2_angle,
-        #    -s3_angle,
-        #    -e1_angle,
-        #    -w1_angle
-        #])
+        ])
 
         self.stepsPerAction = 1
 

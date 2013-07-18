@@ -2,7 +2,7 @@ __author__ = 'Evan Sneath, evansneath@gmail.com'
 
 from pybrain.rl.environments import EpisodicTask
 from pybrain.rl.environments.ode.sensors import SpecificBodyPositionSensor
-from scipy import tanh, array, sqrt, absolute, pi
+from scipy import tanh, array, sqrt, absolute, pi, clip
 
 
 class Pa10Task(EpisodicTask):
@@ -23,16 +23,16 @@ class Pa10Task(EpisodicTask):
         self.count = 0
 
         # The number of timesteps in the episode
-        self.epiLen = 1500
+        self.epiLen = 1000
 
         # Counts the task resets for incremental learning
         self.incLearn = 0
 
         # Environment coefficient of friction
-        self.env.FricMu = 8.0#20.0
+        self.env.FricMu = 20.0 # 8.0
 
         # Real-world time for each time step
-        self.env.dt = 0.01
+        self.env.dt = 0.005
 
         # Add all actuators to the sensor limits
         self.sensor_limits = []
@@ -44,8 +44,7 @@ class Pa10Task(EpisodicTask):
 
         # Set joint velocity sensor limits
         for i in range(self.env.actLen):
-            self.sensor_limits.append((-20, 20))
-            #self.sensor_limits.append((-0.01, 0.01))
+            self.sensor_limits.append((-2.0 * pi, 2.0 * pi))
 
         # Add the PA-10 tooltip position sensor
         self.env.addSensor(SpecificBodyPositionSensor(['pa10_t2'], 'tooltipPos'))
@@ -89,6 +88,24 @@ class Pa10Task(EpisodicTask):
         #if self.count % (self.epiLen / 2) == 0:
         #    print 'IN ACTION:', action
 
+        min_angle_velocities = [
+            -1.0 / (2.0 * pi),
+            -1.0 / pi,
+            -1.0 / pi,
+            -1.0,
+        ]
+
+        max_angle_velocities = [
+            1.0 / (2.0 * pi),
+            1.0 / pi,
+            1.0 / pi,
+            1.0,
+        ]
+
+        print 'BEFORE:', action
+        action = clip(action, min_angle_velocities, max_angle_velocities)
+        print 'AFTER :', action
+
         # Change range from (-1.0, 1.0) to (0.0, 1.0)
         action = (action + 1.0) / 2.0
 
@@ -104,12 +121,17 @@ class Pa10Task(EpisodicTask):
         action = (tanh((action - joints - 0.9 * speeds * self.env.torqueList) *
                   16.0) * self.maxPower * self.env.torqueList)
 
+       
         # DEBUG
         #if self.count % (self.epiLen / 2) == 0:
         #    print 'OUT ACTION:', action
 
         #if self.count % self.epiLen == 0:
         #    print 'NEW ACTION:', action, type(action)
+
+        #if self.incLearn == 5:
+        #    with open('./actions.txt', 'a') as f:
+        #        f.write('[%f, %f, %f, %f]\n' % (action[0], action[1], action[2], action[3]))
 
         EpisodicTask.performAction(self, action)
 

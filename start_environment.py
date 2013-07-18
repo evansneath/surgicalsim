@@ -2,10 +2,13 @@
 
 from pa10 import Pa10BallXode, Pa10Environment, Pa10MovementTask
 
-from pybrain.optimization import PGPE
+from pybrain.optimization import PGPE, HillClimber
 from pybrain.structure.modules.tanhlayer import TanhLayer
-from pybrain.rl.agents import OptimizationAgent
+
+from pybrain.rl.learners import Q
+from pybrain.rl.agents import OptimizationAgent, LearningAgent
 from pybrain.rl.experiments import EpisodicExperiment
+
 from pybrain.tools.example_tools import ExTools
 from pybrain.tools.shortcuts import buildNetwork
 
@@ -32,6 +35,11 @@ def create_environment():
     return env
 
 
+def create_network():
+    net = None
+    return net
+
+
 def run_forever():
     # Create the environment
     env = create_environment()
@@ -50,9 +58,10 @@ def run_experiment():
     RUNS = 2
     BATCHES = 1
     PRINTS = 1
-    EPISODES = 1000
+    EPISODES = 500
 
     env = None
+    start_state_net = None
 
     run_results = []
 
@@ -61,6 +70,9 @@ def run_experiment():
 
     # Run the experiment
     for run in range(RUNS):
+        if run == 0:
+            continue
+
         # If an environment already exists, shut it down
         if env:
             env.closeSocket()
@@ -79,11 +91,21 @@ def run_experiment():
             # runs 5-9 are recurrent
             is_rnn = True
 
-        # Create the neural network
-        net = buildNetwork(env.obsLen, HIDDEN_NODES, env.actLen, outclass=TanhLayer, recurrent=is_rnn)
+        # Create the neural network. Only create the network once so it retains
+        # the same starting values for each run.
+        if start_state_net:
+            net = start_state_net.copy()
+        else:
+            # TODO: Create a custom network
+            #net = create_network()
+            net = buildNetwork(env.obsLen, HIDDEN_NODES, env.actLen, outclass=TanhLayer, recurrent=is_rnn)
+            start_state_net = net.copy()
+
+        print 'NET:', net
 
         # Create the learning agent
-        agent = OptimizationAgent(net, PGPE(storeAllEvaluations=True))
+        learner = HillClimber(storeAllEvaluations=True)
+        agent = OptimizationAgent(net, learner)
         tools.agent = agent
 
         # Create the experiment
@@ -92,11 +114,6 @@ def run_experiment():
         # Perform all episodes in the run
         for episode in range(EPISODES):
             experiment.doEpisodes(BATCHES)
-
-            # TODO: Look at the internals of this. Adjust as necessary
-            tools.printResults(agent.learner._allEvaluations[-50:-1], run, episode)
-
-        tools.addExps()
 
         # Calculate results
         all_results = agent.learner._allEvaluations
