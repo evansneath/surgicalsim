@@ -122,11 +122,6 @@ def lagrange_dynamics(force, dt, end):
     m_2 = 1.0
     m_3 = 1.0
 
-    # Calculate moments of initeria for each link [kg*m^2]
-    I_1 = (1.0 / 3.0) * m_1 * (l_1 ** 2)
-    I_2 = (1.0 / 3.0) * m_2 * (l_2 ** 2)
-    I_3 = (1.0 / 3.0) * m_3 * (l_3 ** 2)
-
     # Determine the starting angles of each joint [rad]
     theta_1 = np.pi / 2.0
     theta_2 = 0.0
@@ -137,34 +132,42 @@ def lagrange_dynamics(force, dt, end):
     theta_dot_2 = 0.0
     theta_dot_3 = 0.0
 
-    for step in np.arange(0.0, end, dt):
-        # Define kinetic energy equations for each link
-        T_1 = ((1.0 / 2.0) * m_1 * (((l_1 / 2.0) * theta_dot_1) ** 2) +
-               ((1.0 / 2.0) * I_1 * (theta_dot_1 ** 2)))
+    theta_ddot_1 = 0.0
+    theta_ddot_2 = 0.0
+    theta_ddot_3 = 0.0
 
-        T_2 = ((1.0 / 2.0) * m_2 *
-               (((l_1 * theta_dot_2) ** 2) +
-                (((l_2 / 2.0) * theta_dot_2) ** 2) +
-                (l_1 * l_2 * theta_dot_1 * theta_dot_2 *
-                 np.cos(theta_2 - theta_1))) +
-               ((1.0 / 2.0) * I_2 * (theta_dot_2 ** 2)))
+    t = np.arange(0.0, end, dt)
 
-        T_3 = ((1.0 / 2.0) * m_3 *
-               (((l_1 * theta_dot_1) ** 2) +
-                ((l_2 * theta_dot_2) ** 2) +
-                (((l_3 / 2.0) * theta_dot_3) ** 2) +
-                (2.0 * l_1 * l_2 * theta_dot_1 * theta_dot_2 *
-                 np.cos(theta_2 - theta_1)) +
-                (l_1 * l_3 * theta_dot_1 * theta_dot_3 *
-                 np.cos(theta_1) * np.sin(theta_3)) +
-                (l_2 * l_3 * theta_dot_2 * theta_dot_3 *
-                 np.cos(theta_2) * np.sin(theta_3))) +
-               ((1.0 / 2.0) * I_3 * (theta_dot_3 ** 2)))
+    # Calculate moments of initeria for each link [kg*m^2]
+    # I_1 = (1.0 / 3.0) * m_1 * (l_1 ** 2)
+    # I_2 = (1.0 / 3.0) * m_2 * (l_2 ** 2)
+    # I_3 = (1.0 / 3.0) * m_3 * (l_3 ** 2)
 
-        # Define equation for total kinetic energy
-        T = T_1 + T_2 + T_3
+    # Define kinetic energy equations for each link
+    # T_1 = ((1.0 / 2.0) * m_1 * (((l_1 / 2.0) * theta_dot_1) ** 2) +
+    #        ((1.0 / 2.0) * I_1 * (theta_dot_1 ** 2)))
 
-        #print 'STEP: %f --- T: %f' % (step, T)
+    # T_2 = ((1.0 / 2.0) * m_2 *
+    #        (((l_1 * theta_dot_2) ** 2) +
+    #         (((l_2 / 2.0) * theta_dot_2) ** 2) +
+    #         (l_1 * l_2 * theta_dot_1 * theta_dot_2 *
+    #          np.cos(theta_2 - theta_1))) +
+    #        ((1.0 / 2.0) * I_2 * (theta_dot_2 ** 2)))
+
+    # T_3 = ((1.0 / 2.0) * m_3 *
+    #        (((l_1 * theta_dot_1) ** 2) +
+    #         ((l_2 * theta_dot_2) ** 2) +
+    #         (((l_3 / 2.0) * theta_dot_3) ** 2) +
+    #         (2.0 * l_1 * l_2 * theta_dot_1 * theta_dot_2 *
+    #          np.cos(theta_2 - theta_1)) +
+    #         (l_1 * l_3 * theta_dot_1 * theta_dot_3 *
+    #          np.cos(theta_1) * np.sin(theta_3)) +
+    #         (l_2 * l_3 * theta_dot_2 * theta_dot_3 *
+    #          np.cos(theta_2) * np.sin(theta_3))) +
+    #        ((1.0 / 2.0) * I_3 * (theta_dot_3 ** 2)))
+
+    # Define equation for total kinetic energy
+    # T = T_1 + T_2 + T_3
 
     return
 
@@ -177,7 +180,7 @@ def main():
     """
     # Determine the initial force to apply to the center of mass of the 3rd
     # link of the system. This force lasts for the first 'dt' seconds.
-    force = (25.0, 25.0, 100.0) # [N]
+    force = (25.0, 25.0, 25.0) # [N]
 
     # Determine the amount of time for the force to be applied and the time
     # interval between positional outputs.

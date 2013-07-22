@@ -2,7 +2,7 @@ __author__ = 'Evan Sneath, evansneath@gmail.com'
 
 from pybrain.rl.environments import EpisodicTask
 from pybrain.rl.environments.ode.sensors import SpecificBodyPositionSensor
-from scipy import tanh, array, sqrt, absolute, pi, clip
+from scipy import tanh, array, sqrt, absolute, pi
 
 
 class Pa10Task(EpisodicTask):
@@ -11,9 +11,7 @@ class Pa10Task(EpisodicTask):
 
         # Take the defined max torque from the Pa10Environment as max power
 
-        # TODO: Determine the appropriate masses for all parts then switch
-        # back to using torque_max
-        # power = torque * angular_velocity
+        # Power = Torque * Angular_Velocity
         self.maxPower = self.env.torque_max * 2.0 * pi
 
         # Holds all rewards given in each episode
@@ -23,7 +21,7 @@ class Pa10Task(EpisodicTask):
         self.count = 0
 
         # The number of timesteps in the episode
-        self.epiLen = 1000
+        self.epiLen = 1500
 
         # Counts the task resets for incremental learning
         self.incLearn = 0
@@ -59,9 +57,6 @@ class Pa10Task(EpisodicTask):
         for i in range(3):
             self.sensor_limits.append((-4, 4))
         
-        print self.env.getSensorNames()
-        print self.env.getSensors()
-
         return
 
     def performAction(self, action):
@@ -69,7 +64,7 @@ class Pa10Task(EpisodicTask):
         joints = array(self.env.getSensorByName('JointSensor'))
         speeds = array(self.env.getSensorByName('JointVelocitySensor'))
 
-        #if self.count % self.epiLen == 200:
+        #if self.count % self.epiLen == 500:
         #    print 'JOINTS:', joints
         #    print 'SPEEDS:', speeds
         #    print 'ACTION:', action
@@ -84,55 +79,31 @@ class Pa10Task(EpisodicTask):
         #action = (tanh((act - joints - 0.9 * speeds * self.env.torqueList) *
         #          16.0) * self.maxPower * self.env.torqueList)
 
-        # DEBUG
-        #if self.count % (self.epiLen / 2) == 0:
-        #    print 'IN ACTION:', action
+        # Since the PA10 has joint velocity limits, these must be enforced in
+        # the output joint velocity action. Max velocity is determined to this
+        # point by Power * Torque, so in order to proportionally reduce the
+        # angular velocity, the current velocity must be multiplied by these
+        # scaling values
 
-        min_angle_velocities = [
-            -1.0 / (2.0 * pi),
-            -1.0 / pi,
-            -1.0 / pi,
-            -1.0,
-        ]
-
-        max_angle_velocities = [
-            1.0 / (2.0 * pi),
-            1.0 / pi,
-            1.0 / pi,
-            1.0,
-        ]
-
-        print 'BEFORE:', action
-        action = clip(action, min_angle_velocities, max_angle_velocities)
-        print 'AFTER :', action
+        max_angle_velocities = array([
+            1.0 / (2.0 * pi), # S2 max = 1.0 [rad/s]
+            1.0 / pi,         # S3 max = 2.0 [rad/s]
+            1.0 / pi,         # E1 max = 2.0 [rad/s]
+            1.0,              # W1 max = 2.0 * pi [rad/s]
+        ])
 
         # Change range from (-1.0, 1.0) to (0.0, 1.0)
         action = (action + 1.0) / 2.0
 
-        # 
+        # Scale the action between low and high joint angles
         action = (action * (self.env.cHighList - self.env.cLowList) +
                 self.env.cLowList)
-        
-        # DEBUG
-        #if self.count % (self.epiLen / 2) == 0:
-        #    print 'INTERMEDIATE ACTION:', action
 
-        # Simple PID Controller
-        action = (tanh((action - joints - 0.9 * speeds * self.env.torqueList) *
-                  16.0) * self.maxPower * self.env.torqueList)
+        # Simple PID controller, convert torques to angular velocities
+        action = (tanh(action - joints - speeds * self.env.torqueList) *
+                  self.maxPower * self.env.torqueList * max_angle_velocities)
 
-       
-        # DEBUG
-        #if self.count % (self.epiLen / 2) == 0:
-        #    print 'OUT ACTION:', action
-
-        #if self.count % self.epiLen == 0:
-        #    print 'NEW ACTION:', action, type(action)
-
-        #if self.incLearn == 5:
-        #    with open('./actions.txt', 'a') as f:
-        #        f.write('[%f, %f, %f, %f]\n' % (action[0], action[1], action[2], action[3]))
-
+        # Carry out the action based on angular velocities
         EpisodicTask.performAction(self, action)
 
         return

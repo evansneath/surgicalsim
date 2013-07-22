@@ -101,8 +101,6 @@ def run_experiment():
             net = buildNetwork(env.obsLen, HIDDEN_NODES, env.actLen, outclass=TanhLayer, recurrent=is_rnn)
             start_state_net = net.copy()
 
-        print 'NET:', net
-
         # Create the learning agent
         learner = HillClimber(storeAllEvaluations=True)
         agent = OptimizationAgent(net, learner)

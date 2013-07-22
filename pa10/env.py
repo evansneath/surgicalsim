@@ -62,18 +62,13 @@ class Pa10Environment(ODEEnvironment):
         torque_w2_rotate_norm = 0.36 / self.torque_max
 
         # Set joint max torques
-        torques = [
+        self.torqueList = array([
             #torque_s1_rotate_norm,
             torque_s2_pivot_norm,
             torque_s3_rotate_norm,
             torque_e1_pivot_norm,
             torque_w1_pivot_norm,
-        ]
-
-        self.torqueList = array(torques)
-
-        # PyBrain devs spelled "Torque" incorrectly... 'tourqueList' is a inherited attribute
-        self.tourqueList = self.torqueList
+        ])
 
         # NOTE: PyBrain accepts joint angles between -2pi and 2pi. Be sure
         # to convert all values in degrees to radians.
@@ -90,32 +85,28 @@ class Pa10Environment(ODEEnvironment):
 
         # Define joint max/min rotation angles
         rotation = 360.0
+
+        # Shoulder joint max angles
         s1_angle = 177.0 / rotation
-        s2_angle = 45.0 / rotation
-        s2_angle *= 2.0 * pi
-
+        s2_angle = 91.0 / rotation
         s3_angle = 45.0 / rotation
-        s3_angle *= 2.0 * pi
 
+        # Elbow joint max angles
         e1_angle = 137.0 / rotation
-        e1_angle *= 2.0 * pi
-
         e2_angle = 255.0 / rotation
-        e2_angle *= 2.0 * pi
 
+        # Wrist joint max angles
         w1_angle = 165.0 / rotation
-        w1_angle *= 2.0 * pi
-
         w2_angle = 360.0 / rotation
 
-        # Set joint max/min rotation angles
+        # Set joint max/min rotation angle arrays (between -2pi and 2pi)
         self.cHighList = array([
             #s1_angle,
             s2_angle,
             s3_angle,
             e1_angle,
             w1_angle,
-        ])
+        ]) * 2.0 * pi
 
         self.cLowList = array([
             #0.0,
@@ -123,7 +114,7 @@ class Pa10Environment(ODEEnvironment):
             -s3_angle,
             0.0,
             0.0,
-        ])
+        ]) * 2.0 * pi
 
         self.stepsPerAction = 1
 
