@@ -4,6 +4,9 @@ from pybrain.rl.environments import EpisodicTask
 
 import numpy as np
 
+# Custom class for miscellaneous functions
+import utils
+
 
 class Pa10Task(EpisodicTask):
     def __init__(self, env):
@@ -28,6 +31,16 @@ class Pa10Task(EpisodicTask):
         self.sensor_limits = None
         self.actor_limits = None
 
+        # Create all attributes for current joint observations
+        self.joint_angles = []
+        self.joint_velocities = []
+        self.joint_acclerations = []
+
+        self.old_joint_velocities = []
+
+        # Create the attribute for current tooltip position (x, y, z) [m]
+        self.tooltip_position = []
+
         # Create all attributes for joint limits
         self.joint_max_angles = []
         self.joint_min_angles = []
@@ -38,6 +51,9 @@ class Pa10Task(EpisodicTask):
         self.set_joint_angle_limits()
         self.set_joint_velocity_limits()
         self.set_joint_torque_limits()
+
+        # Compute the maximum power for each joint
+        self.joint_max_powers = self.joint_max_torques * self.joint_max_velocities
 
         return
 
@@ -66,8 +82,8 @@ class Pa10Task(EpisodicTask):
         e2_max_angle = 180.0 / rotation
 
         # Wrist joint max angles
-        w1_max_angle = 165.0 / rotation
-        w2_max_angle = 180.0 / rotation
+        w1_max_angle = 150.0 / rotation
+        w2_max_angle = 170.0 / rotation
 
         # Set joint maximum rotation angles [rad]
         self.joint_max_angles = np.array([
@@ -166,13 +182,34 @@ class Pa10Task(EpisodicTask):
         return
 
 
-    def performAction(self, action):
-        # Get joint angles and speeds
+    def getObservation(self):
+        sensors = EpisodicTask.getObservation(self)
 
+        # Get the current joint angles [rad]
         # The joint angle values will be between -pi and pi in radians
-        joint_angles = np.asarray(self.env.getSensorByName('JointSensor'))
-        joint_velocities = np.asarray(self.env.getSensorByName('JointVelocitySensor'))
+        self.joint_angles = np.asarray(self.env.getSensorByName('JointSensor'))
 
+        # Get the current joint velocities [rad/s]
+        self.joint_velocities = np.asarray(self.env.getSensorByName('JointVelocitySensor'))
+
+        # Set the old joint velocities to 0 if this is the first time step
+        if not len(self.old_joint_velocities):
+            self.old_joint_velocities = np.zeros_like(self.joint_velocities)
+
+        # Get the current joint accelerations [rad/s^2]
+        self.joint_acclerations = (np.absolute(self.joint_velocities -
+               self.old_joint_velocities) / self.env.dt)
+
+        # Get the current tooltip position (x, y, z) [m]
+        self.tooltip_position = np.asarray(self.env.getSensorByName('tooltipPos'))
+
+        # Observations were made. Set current values as old values
+        self.old_joint_velocities = np.copy(self.joint_velocities)
+
+        return sensors
+
+
+    def action_from_joint_angles(self, action):
         # Change range from (-1.0, 1.0) to (0.0, 1.0)
         action = (action + 1.0) / 2.0
 
@@ -185,14 +222,47 @@ class Pa10Task(EpisodicTask):
         # by the max power of the system. Since power=torque*angular_velocity,
         # We can multiply the maximum powers for each joint to find the desired
         # output power.
-        action = (np.tanh(action - joint_angles - joint_velocities *
-                          self.joint_max_torques) *
-                  self.joint_max_torques * self.joint_max_velocities)
+
+        # Tune the PI controller using the Ziegler-Nichols method
+        # First define the ultimate gain (K_u) and oscillation perion (T_u)
+        action = utils.pid_controller(
+                input=action,
+                k_u=1.0,
+                t_u=1.0,
+                e_p=self.joint_angles,
+                e_i=self.joint_velocities,
+                scale=self.joint_max_torques
+        )
+
+        return action
+
+
+    def action_from_joint_velocities(self, action):
+        # Scale the action between max velocities
+        action *= self.joint_max_velocities
+
+        action = utils.pid_controller(
+                input=action,
+                k_u=1.7,
+                t_u=0.59,
+                e_p=self.joint_velocities,
+                e_i=self.joint_angles,
+                e_d=self.joint_acclerations,
+                scale=self.joint_max_torques
+        )
+
+        return action
+
+
+    def performAction(self, action):
+        action = self.action_from_joint_angles(action)
+        #action = self.action_from_joint_velocities(action)
 
         # Carry out the action based on angular velocities
         EpisodicTask.performAction(self, action)
 
         return
+
 
     def isFinished(self):
         if self.count > self.epiLen:
@@ -202,6 +272,7 @@ class Pa10Task(EpisodicTask):
 
         self.count += 1
         return False
+
 
     def res(self):
         self.count = 0
@@ -219,107 +290,30 @@ class Pa10MovementTask(Pa10Task):
 
         y_floor = -1.5
 
-        # Set the current and old tooltip position attributes
-        self.tooltip_pos = np.asarray(self.env.getSensorByName('tooltipPos'))
-        self.old_tooltip_pos = np.asarray(self.env.getSensorByName('tooltipPos'))
-        self.tooltip_start = np.asarray(self.env.getSensorByName('tooltipPos'))
-
-        # Define velocity and acceleration values
-        self.velocity = 0.0
-        self.old_velocity = 0.0
-
-        self.acceleration = 0.0
-
-        # Define the position of the target to hit
-        self.target_pos = np.array([0.6, y_floor+0.5, 0.2])
-
-        # Initialize distance between the tooltip and target
-        self.distance_to_target = self.calc_distance(
-                self.tooltip_pos,
-                self.target_pos
-        )
-
-        self.smoothness_total = 0.0
+        # Define the position of the target to touch (x, y, z) [m]
+        self.target_position = np.array([0.6, y_floor+0.5, 0.2])
 
         return
 
-    def calc_distance(self, source, destination):
-        """Calculate Distance
-
-        Calculate the distance between any two points in the environment.
-
-        Arguments:
-            source: The start point.
-            destination: The target point.
-        """
-        return np.sqrt(((source - destination) ** 2).sum())
 
     def getObservation(self):
-        # Collect data about the world at each moment
-
-        # Get the current tooltip location [m]
-        self.tooltip_pos = np.asarray(self.env.getSensorByName('tooltipPos'))
-
-        # Calculate the straightline distance from the arm to the target point [m]
-        self.distance_to_target = self.calc_distance(
-                self.tooltip_pos,
-                self.target_pos
-        )
-
-        # Calculate the distance of the tooltip from the previous moment [m]
-        pos_difference = self.calc_distance(
-                self.tooltip_pos,
-                self.old_tooltip_pos
-        )
-        
-        # Calculate the velocity for this moment [m/s]
-        self.velocity = pos_difference / self.env.dt
-
-        # Calculate the acceleration of this moment [m/s^2]
-        self.acceleration = np.absolute(self.velocity - self.old_velocity)
-
-        # Set the values of this moment as "old" values
-        self.old_velocity = self.velocity
-        self.old_tooltip_pos = self.tooltip_pos
-
         sensors = Pa10Task.getObservation(self)
+
+        # Calculate the straightline distance from the arm to the target [m]
+        self.distance_to_target = utils.calc_distance(
+                self.tooltip_position,
+                self.target_position
+        )
 
         return sensors
 
-    def print_point_debug(self):
-        # Just print out information of the location of everything
-        print ('Tooltip is at: (x=%f, y=%f, z=%f)' %
-               (self.tooltip_pos[0], self.tooltip_pos[1], self.tooltip_pos[2]))
-        print ('Target is at: (x=%f, y=%f, z=%f)' %
-               (self.target_pos[0], self.target_pos[1], self.target_pos[2]))
-        print 'Distance to target is %f m' % self.distance
-        print 'Velocity is %f m/s' % self.velocity
-
-        return
-
-    def isFinished(self):
-        # If we hit the point, we're done here
-        # TODO: Uncomment this when an incentive is given to hit the target
-        #if self.distance <= 0.04 and not self.reached_target:
-        #    print 'Reached target at time %d/%d' % (self.count, self.epiLen)
-        #    self.res()
-        #    return True
-
-        # Perform the normal time-check to determine if we are done
-        result = Pa10Task.isFinished(self)
-
-        return result
 
     def getReward(self):
-        # NOTE: A reward is given at every point in time in the episode
+        # NOTE: A reward is given at every step in the episode
 
         # The reward is determined by the distance from the target point and
         # if the arm is actively moving to fix its position
         distance_reward = 1.0 / (self.distance_to_target + 0.001)
-
-        # Reward a low amount of acceleration for each moment
-        #smoothness_reward = 1.0 / (self.acceleration + 1.0)
-
         reward = distance_reward / self.epiLen
 
         return reward
