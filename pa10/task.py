@@ -227,28 +227,12 @@ class Pa10Task(EpisodicTask):
         # First define the ultimate gain (K_u) and oscillation perion (T_u)
         action = utils.pid_controller(
                 input=action,
-                k_u=1.0,
-                t_u=1.0,
-                e_p=self.joint_angles,
-                e_i=self.joint_velocities,
-                scale=self.joint_max_torques
-        )
-
-        return action
-
-
-    def action_from_joint_velocities(self, action):
-        # Scale the action between max velocities
-        action *= self.joint_max_velocities
-
-        action = utils.pid_controller(
-                input=action,
-                k_u=1.7,
-                t_u=0.59,
-                e_p=self.joint_velocities,
-                e_i=self.joint_angles,
-                e_d=self.joint_acclerations,
-                scale=self.joint_max_torques
+                k_u=0.6,
+                t_u=0.01,
+                e_p=self.joint_angles,             # [rad]
+                e_i=self.joint_angles*self.env.dt, # [rad*s]
+                e_d=self.joint_velocities,         # [rad/s]
+                scale=self.joint_max_torques       # [N*m]
         )
 
         return action
@@ -256,7 +240,6 @@ class Pa10Task(EpisodicTask):
 
     def performAction(self, action):
         action = self.action_from_joint_angles(action)
-        #action = self.action_from_joint_velocities(action)
 
         # Carry out the action based on angular velocities
         EpisodicTask.performAction(self, action)
