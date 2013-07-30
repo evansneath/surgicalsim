@@ -246,7 +246,7 @@ class Pa10BallXode(Pa10Xode):
         y_floor = -1.5
 
         self.insertBody(bname='ball', shape='sphere',
-                size=[0.03], density=0.0, pos=[0.6, y_floor+0.5, 0.2],
+                size=[0.03], density=0.0, pos=[0.75, y_floor+0.5, 0.2],
                 passSet=['arm'], euler=[0.0, 0.0, 0.0], mass=0.1, color=(0, 0, 255, 255))
 
         # Fix the ball to the immobile base of the robot

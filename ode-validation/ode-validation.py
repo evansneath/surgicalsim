@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 
+# Import the open dynamics engine
 import ode
 
-import scipy
+# Import the lagrangian generator for cross-validation of ode
+import lagrangian
+
+# Import all pylab array and plotting tools
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+
 
 def ode_dynamics(force, dt, end):
     """ODE Dynamics

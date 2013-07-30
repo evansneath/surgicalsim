@@ -12,6 +12,8 @@ class Pa10Task(EpisodicTask):
     def __init__(self, env):
         EpisodicTask.__init__(self, env)
 
+        self.pause = False
+
         # Holds all rewards given in each episode
         self.reward_history = []
 
@@ -31,19 +33,18 @@ class Pa10Task(EpisodicTask):
         self.sensor_limits = None
         self.actor_limits = None
 
-        # Create all attributes for current joint observations
-        self.joint_angles = []
-        self.joint_velocities = []
-        self.joint_acclerations = []
-
-        self.old_joint_velocities = []
+        # Create all current joint observation attributes
+        self.joint_angles = []         # [rad]
+        self.joint_velocities = []     # [rad/s]
 
         # Create the attribute for current tooltip position (x, y, z) [m]
-        self.tooltip_position = []
+        self.tooltip_position = []     # [m]
 
-        # Create all attributes for joint limits
+        # Create all joint angle [rad] limit attributes
         self.joint_max_angles = []
         self.joint_min_angles = []
+
+        # Create all joint velocity [rad/s] and torque [N*m] limit attributes
         self.joint_max_velocities = []
         self.joint_max_torques = []
 
@@ -51,9 +52,6 @@ class Pa10Task(EpisodicTask):
         self.set_joint_angle_limits()
         self.set_joint_velocity_limits()
         self.set_joint_torque_limits()
-
-        # Compute the maximum power for each joint
-        self.joint_max_powers = self.joint_max_torques * self.joint_max_velocities
 
         return
 
@@ -192,19 +190,8 @@ class Pa10Task(EpisodicTask):
         # Get the current joint velocities [rad/s]
         self.joint_velocities = np.asarray(self.env.getSensorByName('JointVelocitySensor'))
 
-        # Set the old joint velocities to 0 if this is the first time step
-        if not len(self.old_joint_velocities):
-            self.old_joint_velocities = np.zeros_like(self.joint_velocities)
-
-        # Get the current joint accelerations [rad/s^2]
-        self.joint_acclerations = (np.absolute(self.joint_velocities -
-               self.old_joint_velocities) / self.env.dt)
-
         # Get the current tooltip position (x, y, z) [m]
         self.tooltip_position = np.asarray(self.env.getSensorByName('tooltipPos'))
-
-        # Observations were made. Set current values as old values
-        self.old_joint_velocities = np.copy(self.joint_velocities)
 
         return sensors
 
@@ -253,7 +240,9 @@ class Pa10Task(EpisodicTask):
             self.res()
             return True
 
-        self.count += 1
+        if not self.pause:
+            self.count += 1
+
         return False
 
 
@@ -274,7 +263,7 @@ class Pa10MovementTask(Pa10Task):
         y_floor = -1.5
 
         # Define the position of the target to touch (x, y, z) [m]
-        self.target_position = np.array([0.6, y_floor+0.5, 0.2])
+        self.target_position = np.array([0.75, y_floor+0.5, 0.2])
 
         return
 

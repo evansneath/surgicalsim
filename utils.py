@@ -29,24 +29,27 @@ def pid_controller(input, k_u, t_u, e_p, e_i, e_d, scale=1.0):
     argument.
 
     Arguments:
-        input: The input control to the system (numpy array acceptable)
-        k_u:
-        t_u:
-        e_p:
-        e_i:
-        e_d:
+        input: The input control to the system.
+        k_u: The ultimate oscillation gain. (used for tuning) [-]
+        t_u: The ultimate oscillation period. (used for tuning) [s]
+        e_p: The desired proportional value.
+        e_i: The integral value of the proportional unit.
+        e_d: The derivative value of the proportional unit.
         scale: The value to scale the output value(s) between. (Default: 1.0)
 
     Returns:
-        A PID regulated value to feed back to the system.
+        A PID-regulated value to drive the system.
     """
     # Ensure that all input arrays are of proper size
     assert np.shape(input) == np.shape(e_p) == np.shape(e_i) == np.shape(e_d)
 
-    k_p = 0.60 * k_u
-    k_i = 2.0 * k_p / t_u
-    k_d = k_p * t_u / 8.0
+    # Ziegler-Nichols method constant calculations
+    #k_p = 0.60 * k_u
+    #k_i = 2.0 * k_p / t_u
+    #k_d = k_p * t_u / 8.0
 
+    # NOTE: At the moment, all constant values are manually tuned and are not
+    # driven by the Ziegler-Nichols method of PID controller tuning
     k_p = 1.0
     k_i = 0.9
     k_d = 0.9

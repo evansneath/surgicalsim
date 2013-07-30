@@ -19,13 +19,20 @@ import numpy as np
 G_RESULTS_DIR = 'results'
 
 def create_environment():
+    """Create Simulation Environment
+
+    Generates and initializes the PA10 robotic arm environment from
+    the specifications defined in ./pa10/xode.py.
+
+    Returns:
+        The ODE environment for the PA10 robotic arm.
+    """
     # Generate the xode file for world creation
     xode_name = 'pa10'
 
     if os.path.exists('./'+xode_name+'.xode'):
         os.remove('./'+xode_name+'.xode')
 
-    #xode = Pa10Xode(xode_name)
     xode = Pa10BallXode(xode_name)
     xode.writeXODE('./'+xode_name)
 
@@ -35,13 +42,22 @@ def create_environment():
     return env
 
 
-def create_network():
-    net = None
+def create_network(in_nodes, hidden_nodes, out_nodes):
+    """Create Artificial Neural Network
+
+    Arguments:
+        in_nodes: The number of input nodes in the network.
+        hidden_nodes: The number of hidden nodes in the network.
+        out_nodes: The number of output nodes in the network.
+
+    Returns:
+        The artificial neural network module.
+    """
+    net = buildNetwork(in_nodes, hidden_nodes, out_nodes, outclass=TanhLayer, recurrent=True)
     return net
 
 
 def run_forever():
-    # Create the environment
     env = create_environment()
 
     # Continue this simulation forever without resets
@@ -83,22 +99,17 @@ def run_experiment():
         # Create the task
         task = Pa10MovementTask(env)
 
-        # Determines if the neural network is to be recurrent or feed-forward
-        if run == 0:
-            # runs 0-4 are feed-forward
-            is_rnn = False
-        else:
-            # runs 5-9 are recurrent
-            is_rnn = True
-
         # Create the neural network. Only create the network once so it retains
         # the same starting values for each run.
         if start_state_net:
             net = start_state_net.copy()
         else:
-            # TODO: Create a custom network
-            #net = create_network()
-            net = buildNetwork(env.obsLen, HIDDEN_NODES, env.actLen, outclass=TanhLayer, recurrent=is_rnn)
+            # Create the initial neural network
+            net = create_network(
+                    in_nodes=env.obsLen,
+                    hidden_nodes=HIDDEN_NODES,
+                    out_nodes=env.actLen
+            )
             start_state_net = net.copy()
 
         # Create the learning agent
