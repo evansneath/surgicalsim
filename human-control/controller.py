@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
-"""Human Capture Controller
+class HumanControlDevice(object):
+    """HumanControlDevice
 
-Gets positional and pointing vector information from the Phantom Omni
-6-DOF controller. This controller data is then used to control the
-robotic simulation enviroment of the Mitsubishi PA10 robotic arm.
-"""
-
-class HumanCaptureController(object):
+    Gets positional and pointing vector information from the Phantom Omni
+    6-DOF controller. This controller data is then used to control the
+    robotic simulation enviroment of the Mitsubishi PA10 robotic arm.
+    """
     def __init__(self):
         return
 

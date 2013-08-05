@@ -1,6 +1,7 @@
 __author__ = 'Evan Sneath, evansneath@gmail.com'
 
 from pybrain.rl.environments.ode.tools.xodetools import XODEfile
+import numpy as np
 
 class Pa10Xode(XODEfile):
     def __init__(self, name, **kwargs):
