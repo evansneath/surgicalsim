@@ -33,8 +33,8 @@ class HumanControlEnvironment(ODEEnvironment):
 
         self.dt = 0.01
 
-        # TODO: Switch this to a 7-joint system
-        self.torques = np.array([0.0, 0.0])
+        # TODO: Switch this to a 7-body system
+        self.velocities = np.array([0.0, 0.0])
 
         return
 
@@ -51,6 +51,31 @@ class HumanControlEnvironment(ODEEnvironment):
         self.dt = dt
 
         return
+
+
+    def increment_body_pos(self, body_name, inc_val):
+        """Increment Body Position
+
+        Increments the position of a body in the next time step by a given
+        amount.
+
+        Arguments:
+            body_name: The name of the body to modify.
+            inc_value: The distance to increment the body for each timestep.
+
+        Returns:
+            True if body is found, False otherwise.
+        """
+        direction = np.array([1, 0, 0])
+        cur_pos = self.get_body_pos(body_name)
+
+        if cur_pos is None:
+            return False
+
+        new_pos = cur_pos + (inc_val * direction)
+        self.set_body_pos(body_name, new_pos)
+
+        return True
 
 
     def set_torques(self, torques):
@@ -80,6 +105,92 @@ class HumanControlEnvironment(ODEEnvironment):
         for i, actuator in enumerate(self.actuators):
             a._update(self.torques[i])
 
+        return
+
+
+    def get_body_by_name(self, name):
+        """Get Body By Name
+
+        Get a ODE body object by its name and return the original
+        ODE object.
+
+        Arguments:
+            name: The name of the body to find.
+
+        Return:
+            The copied body object if found, None otherwise.
+        """
+        # Pull out the body in the (body, geom) tuple
+        for body, _ in self.body_geom:
+            if body.name == name:
+                return body
+
+        return None
+
+
+    def get_body_pos(self, name):
+        """Get Body Position
+
+        Gets the current position of a given body.
+
+        Arguments:
+            name: The name of the body to find.
+
+        Returns:
+            A 3-item tuple containing (x, y, z) positional coordinates.
+        """
+        body = self.get_body_by_name(name)
+        pos = body.getPosition()
+        return pos
+
+
+    def set_body_pos(self, name, pos):
+        """Set Body Position
+
+        Sets the body position for the next timestep.
+
+        Arguments:
+            name: The name of the body to modify.
+            pos: The new position of the body in the form of a 3-item tuple.
+
+        Returns:
+            None
+        """
+        body = self.get_body_by_name(name)
+        body.setPosition(pos)
+        return
+
+
+    def get_body_ang_vel(self, name):
+        """Get Body Angular Velocity
+
+        Gets the angular velocity of the body.
+
+        Arguments:
+            name: The name of the body to find.
+
+        Returns:
+            A 3-item tuple of (x, y, z) velocities.
+        """
+        body = self.get_body_by_name(name)
+        vel = body.getAngularVel()
+        return vel
+
+
+    def set_body_ang_vel(self, name, vel):
+        """Set Body Angular Velocity
+
+        Sets the angular velocity of the body.
+
+        Arguments:
+            name: The name of the body to modify.
+            vel: A 3-object tuple or list containing (x, y, z) velocities.
+
+        Returns:
+            None
+        """
+        body = self.get_body_by_name(name)
+        body.setAngularVel(vel)
         return
 
 

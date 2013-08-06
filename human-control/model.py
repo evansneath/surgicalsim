@@ -3,6 +3,58 @@
 from pybrain.rl.environments.ode.tools.xodetools import XODEfile
 import numpy as np
 
+
+class EndEffectorModel(XODEfile):
+    def __init__(self, name, **kwargs):
+        XODEfile.__init__(self, name, **kwargs)
+
+        y_floor = -1.0
+
+        # Define the stick properties
+        m_stick = 1.0
+        l_stick = 0.1
+        w_stick = 0.005
+
+        siz_stick = [w_stick, l_stick]
+        pos_stick = [0.0, y_floor+0.4, 0.0]
+        eul_stick = [90.0, 0.0, 0.0]
+
+        self.insertBody(bname='stick', shape='cylinder', size=siz_stick,
+                density=0.0, pos=pos_stick, passSet=['end_effector'],
+                euler=eul_stick, mass=m_stick)
+
+        m_tooltip = 0.1
+        r_tooltip = 0.01
+
+        siz_tooltip = [r_tooltip]
+        pos_tooltip = [0.0, y_floor+0.4-(l_stick/2.0), 0.0]
+        eul_tooltip = [0.0, 0.0, 0.0]
+
+        self.insertBody(bname='tooltip', shape='sphere', size=siz_tooltip,
+                density=0.0, pos=pos_tooltip, passSet=['end_effector'],
+                euler=eul_stick, mass=m_tooltip, color=(255, 0, 0, 255))
+
+        self.insertJoint('stick', 'tooltip', type='fixed')
+
+        m_table = 1.0
+        siz_table = [0.3, 0.01, 0.3]
+        pos_table = [0.0, y_floor+0.2, 0.0] 
+        eul_table = [0.0, 0.0, 0.0]
+
+        self.insertBody(bname='table', shape='box', size=siz_table,
+                density=0.0, pos=pos_table, passSet=[],
+                euler=eul_table, mass=m_table)
+
+        # Insert the floor position and center the camera
+        self.insertFloor(y=y_floor)
+        self.centerOn('table')
+
+        self.affixToEnvironment('table')
+
+        return
+
+   
+
 class TestArmModel(XODEfile):
     def __init__(self, name, **kwargs):
         XODEfile.__init__(self, name, **kwargs)
