@@ -36,6 +36,29 @@ class HumanControlEnvironment(ODEEnvironment):
         # TODO: Switch this to a 7-body system
         self.velocities = np.array([0.0, 0.0])
 
+        self.groups = {
+                'pointer': ['stick', 'tooltip'],
+        }
+
+        self.init_body_positions = {}
+
+        # Get the initial locations for each body object
+        for (body, _) in self.body_geom:
+            if body is None:
+                continue
+
+            self.init_body_positions[body.name] = self.get_body_pos(body.name)
+
+        return
+
+
+    def set_group_pos(self, group_name, pos):
+        for body_name in self.groups[group_name]:
+            new_pos = (np.array(self.init_body_positions[body_name]) +
+                    np.array(pos))
+
+            self.set_body_pos(body_name, tuple(new_pos))
+
         return
 
 
@@ -51,31 +74,6 @@ class HumanControlEnvironment(ODEEnvironment):
         self.dt = dt
 
         return
-
-
-    def increment_body_pos(self, body_name, inc_val):
-        """Increment Body Position
-
-        Increments the position of a body in the next time step by a given
-        amount.
-
-        Arguments:
-            body_name: The name of the body to modify.
-            inc_value: The distance to increment the body for each timestep.
-
-        Returns:
-            True if body is found, False otherwise.
-        """
-        direction = np.array([1, 0, 0])
-        cur_pos = self.get_body_pos(body_name)
-
-        if cur_pos is None:
-            return False
-
-        new_pos = cur_pos + (inc_val * direction)
-        self.set_body_pos(body_name, new_pos)
-
-        return True
 
 
     def set_torques(self, torques):

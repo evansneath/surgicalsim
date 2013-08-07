@@ -6,7 +6,6 @@ import numpy as np
 
 from model import TestArmModel, EndEffectorModel
 from environment import HumanControlEnvironment
-from viewer import HumanControlViewer
 from controller import HumanControlDevice
 
 import time
@@ -21,12 +20,8 @@ def run():
     omni = None
     kinematics = None
 
-    raw_data = []
-
     (env, omni, kinematics) = init()
 
-    # TODO: Set the tooltip_pos_old and tooltop_rot_old here to the starting
-    # position and rotation of the phantom omni device
     cur_time = 0
     env.dt = 0.005
 
@@ -35,24 +30,14 @@ def run():
             env.step(paused=True)
             continue
 
-        #omni.update()
-        #env.set_body_pos('tooltip', tuple(omni.pos))
-
-        #oscillation_test(cur_time, env)
-        pos = omni.get_pos()
-        increment_pos(env, pos)
+        # TODO: Uncomment this once Omni controls are working
+        #next_pos = omni.get_pos()
+        next_pos = oscillation_test(cur_time, env)
+        env.set_group_pos('pointer', next_pos)
 
         # Step through the world by 1 time frame
         env.step()
         cur_time += env.dt
-
-        # Store joint angles/velocities as raw data (env -> file)
-        # raw_data.append((angles, velocities))
-
-        #tooltip_pos_old = np.copy(tooltip_pos_new)
-        #tooltip_rot_old = np.copy(tooltip_rot_new)
-
-    # TODO: Perform cleanup stuff here
 
     return
 
@@ -83,7 +68,6 @@ def init():
 
     # Start controller
     omni = HumanControlDevice()
-    omni.start()
 
     # Start kinematics engine
     kinematics = None
@@ -92,28 +76,17 @@ def init():
 
 
 def oscillation_test(cur_time, env):
-    x_new = 1.0 * np.sin(2.0 * np.pi * cur_time / 25.0)
-    (x_stick, y_stick, z_stick) = env.get_body_pos('stick')
-    (x_tooltip, y_tooltip, z_tooltip) = env.get_body_pos('tooltip')
+    """Oscillation Test
 
-    env.set_body_pos('stick', (x_new, y_stick, z_stick))
-    env.set_body_pos('tooltip', (x_new, y_tooltip, z_tooltip))
-    return
+    Oscillates the tooltip in the x and y direction.
+    x_amp, y_amp, x_freq, and y_freq and adjustable parameters to control
+    the sinusoidal oscillations from the starting position.
+    """
+    amps = np.array([0.1, 0.1, 0.1])
+    freqs = np.array([0.4, 0.2, 0.1])
+    pos = amps * np.sin(2.0 * np.pi * cur_time * freqs)
 
-
-def increment_pos(env, pos):
-    pos = np.array(pos)
-
-    stick_pos = np.array(env.get_body_pos('stick'))
-    tooltip_pos = np.array(env.get_body_pos('tooltip'))
-
-    stick_pos_new = stick_pos + pos
-    tooltip_pos_new = tooltip_pos + pos
-
-    env.set_body_pos('stick', tuple(stick_pos_new))
-    env.set_body_pos('tooltip', tuple(tooltip_pos_new))
-    
-    return
+    return pos
 
 
 if __name__ == '__main__':

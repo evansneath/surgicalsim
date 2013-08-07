@@ -4,7 +4,7 @@
 import ode
 
 # Import the lagrangian generator for cross-validation of ode
-import lagrangian
+#import lagrangian
 
 # Import all pylab array and plotting tools
 import numpy as np
