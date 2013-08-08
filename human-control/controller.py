@@ -10,14 +10,85 @@ class HumanControlDevice(object):
     robotic simulation enviroment of the Mitsubishi PA10 robotic arm.
     """
     def __init__(self):
-        self._pos = np.array([0.0, 0.0, 0.0])
+        self._t = 0.0 # [s]
+        self._dt = 0.01 # [s]
+
+        self._prev_pos = np.array([0.0, 0.0, 0.0])
+        self._cur_pos = np.array([0.0, 0.0, 0.0])
+
+        self._cur_linear_vel = np.array([0.0, 0.0, 0.0])
+
+        self._prev_angle = np.array([0.0, 0.0, 0.0])
+        self._cur_angle = np.array([0.0, 0.0, 0.0])
+
+        self._cur_angular_vel = np.array([0.0, 0.0, 0.0])
+
         return
 
 
-    def set_pos(self, pos):
-        self._pos = np.array(pos)
+    def set_dt(self, dt):
+        self._dt = dt
         return
 
 
-    def get_pos(self):
-        return self._pos
+    def set_initial_pos(self, pos):
+        self._prev_pos = np.array(pos)
+        self._cur_pos = np.array(pos)
+        return
+
+
+    def set_initial_angle(self, angle):
+        self._prev_angle = np.array(angle)
+        self._cur_angle = np.array(angle)
+        return
+
+
+    def update(self):
+        self._t += self._dt
+
+        # Get the new tooltip position from the device
+        self._prev_pos = self._cur_pos.copy()
+        self._cur_pos = self._get_pos()
+
+        # Calculate the change in linear velocity
+        self._cur_linear_vel = (self._cur_pos - self._prev_pos) / self._dt
+
+        # Get the new tooltip angle from the device
+        self._prev_angle = self._cur_angle.copy()
+        self._cur_angle = self._get_angle()
+
+        self._cur_angular_vel = (self._cur_angle - self._prev_angle) / self._dt
+
+        return
+
+
+    def get_linear_vel(self):
+        return self._cur_linear_vel
+
+
+    def get_angular_vel(self):
+        return self._cur_angular_vel
+
+
+    def _get_pos(self):
+        # TODO: Poll the Phantom Omni device for this information
+        pos = self._oscillation_test()
+        return pos
+
+
+    def _get_angle(self):
+        # TODO: Poll the Phantom Omni device for this information
+        return np.array([0.0, 0.0, 0.0])
+
+
+    def _oscillation_test(self):
+        """Oscillation Test
+
+        Returns a 3-dimensional array of sin values as a function of time.
+        "amps" and "freqs" are 3-element adjustable parameters to control 
+        the sinusoidal oscillations from the starting position.
+        """
+        a = np.array([0.15, 0.0, 0.15])
+        f = np.array([0.4, 0.2, 0.1])
+        y = a * np.sin(2.0 * np.pi * self._t * f)
+        return y

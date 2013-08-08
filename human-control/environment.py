@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from pybrain.rl.environments.ode import ODEEnvironment, actuators
 import numpy as np
+from pybrain.rl.environments.ode import ODEEnvironment, actuators
 
 class HumanControlEnvironment(ODEEnvironment):
     """HumanControlEnvironment class
@@ -33,21 +33,20 @@ class HumanControlEnvironment(ODEEnvironment):
 
         self.dt = 0.01
 
-        # TODO: Switch this to a 7-body system
-        self.velocities = np.array([0.0, 0.0])
-
+        # Create a movement group for the pointer. Note that the first body
+        # defined in the group currently acts as the center of rotation. All
+        # objects in the group should be fixed to at least one other object.
         self.groups = {
-                'pointer': ['stick', 'tooltip'],
+                'pointer': ['tooltip', 'stick'],
         }
 
         self.init_body_positions = {}
 
-        # Get the initial locations for each body object
+        # Get the initial locations for each body object. We know init velocities
+        # will be zero. No forces are applied at first timestep
         for (body, _) in self.body_geom:
-            if body is None:
-                continue
-
-            self.init_body_positions[body.name] = self.get_body_pos(body.name)
+            if body is not None:
+                self.init_body_positions[body.name] = self.get_body_pos(body.name)
 
         return
 
@@ -57,7 +56,24 @@ class HumanControlEnvironment(ODEEnvironment):
             new_pos = (np.array(self.init_body_positions[body_name]) +
                     np.array(pos))
 
-            self.set_body_pos(body_name, tuple(new_pos))
+            self.set_body_pos(body_name, new_pos)
+
+        return
+
+
+    def set_group_linear_vel(self, group_name, vel):
+        for body_name in self.groups[group_name]:
+            new_vel = np.array(vel)
+            self.set_body_linear_vel(body_name, new_vel)
+
+        return
+
+    
+    def set_group_angular_vel(self, group_name, vel):
+        for body_name in self.groups[group_name]:
+            new_vel = np.array(vel)
+
+            self.set_body_angular_vel(body_name, tuple(new_vel))
 
         return
 
@@ -155,11 +171,11 @@ class HumanControlEnvironment(ODEEnvironment):
             None
         """
         body = self.get_body_by_name(name)
-        body.setPosition(pos)
+        body.setPosition(tuple(pos))
         return
 
 
-    def get_body_ang_vel(self, name):
+    def get_body_angular_vel(self, name):
         """Get Body Angular Velocity
 
         Gets the angular velocity of the body.
@@ -175,7 +191,7 @@ class HumanControlEnvironment(ODEEnvironment):
         return vel
 
 
-    def set_body_ang_vel(self, name, vel):
+    def set_body_angular_vel(self, name, vel):
         """Set Body Angular Velocity
 
         Sets the angular velocity of the body.
@@ -188,7 +204,40 @@ class HumanControlEnvironment(ODEEnvironment):
             None
         """
         body = self.get_body_by_name(name)
-        body.setAngularVel(vel)
+        body.setAngularVel(tuple(vel))
+        return
+
+
+    def get_body_linear_vel(self, name):
+        """Get Body Linear Velocity
+
+        Gets the linear velocity of the body.
+
+        Arguments:
+            name: The name of the body to find.
+
+        Returns:
+            A 3-item tuple of (x, y, z) velocities.
+        """
+        body = self.get_body_by_name(name)
+        vel = body.getLinearVel()
+        return vel
+
+
+    def set_body_linear_vel(self, name, vel):
+        """Set Body Linear Velocity
+
+        Sets the linear velocity of the body.
+
+        Arguments:
+            name: The name of the body to modify.
+            vel: A 3-object tuple or list containing (x, y, z) velocities.
+
+        Returns:
+            None
+        """
+        body = self.get_body_by_name(name)
+        body.setLinearVel(tuple(vel))
         return
 
 

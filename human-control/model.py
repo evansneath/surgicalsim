@@ -11,7 +11,7 @@ class EndEffectorModel(XODEfile):
         y_floor = -1.0
 
         # Define the stick properties
-        m_stick = 1.0
+        m_stick = 0.1
         l_stick = 0.1
         w_stick = 0.005
 
