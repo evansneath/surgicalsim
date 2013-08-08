@@ -136,7 +136,7 @@ class HumanControlEnvironment(ODEEnvironment):
         """
         # Pull out the body in the (body, geom) tuple
         for body, _ in self.body_geom:
-            if body.name == name:
+            if body is not None and body.name == name:
                 return body
 
         return None

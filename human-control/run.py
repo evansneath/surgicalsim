@@ -5,7 +5,7 @@ import ode
 import numpy as np
 import time
 
-from model import TestArmModel, EndEffectorModel
+from model import HumanControlModel
 from environment import HumanControlEnvironment
 from controller import HumanControlDevice
 
@@ -23,16 +23,23 @@ def run():
     (env, omni, kinematics) = init()
 
     t = 0.0 # [s]
-    dt = 0.005 # [s]
 
-    env.set_dt(dt)
-    omni.set_dt(dt)
+    # Run the simulation at 60 frames per second
+    fps = 60.0 # [Hz]
+    dt = 1.0 / fps # [s]
 
-    #omni.set_initial_pos(env.init_body_positions['tooltip'])
-    time.sleep(1)
+    t_overshoot = 0.0
 
     print '>>> Running...'
     while not stopped:
+        t_start = time.time()
+
+        # If the last calculation took too long, catch up
+        dt_warped = dt + t_overshoot
+
+        env.set_dt(dt_warped)
+        omni.set_dt(dt_warped)
+
         if paused:
             env.step(paused=True)
             continue
@@ -47,9 +54,20 @@ def run():
 
         # Step through the world by 1 time frame
         env.step()
+        t += dt_warped
 
-        t += dt
+        # Determine the difference in virtual vs actual time
+        t_warped = dt - (time.time() - t_start)
 
+        if t_warped >= 0.0:
+            # The calculation took less time than the virtual time. Sleep the
+            # rest off
+            time.sleep(t_warped)
+            t_overshoot = 0.0
+        else:
+            # The calculation took more time than the virtual time. We need to
+            # catch up with the virtual time on the next time step
+            t_overshoot = -t_warped
 
     return
 
@@ -72,12 +90,12 @@ def init():
         os.remove('./'+xode_filename+'.xode')
 
     #xode_model = TestArmModel(xode_filename)
-    xode_model = EndEffectorModel(xode_filename)
+    xode_model = HumanControlModel(xode_filename)
     xode_model.writeXODE('./'+xode_filename)
 
     # Start environment.
     print '>>> Starting Environment'
-    env = HumanControlEnvironment('./'+xode_filename+'.xode')
+    env = HumanControlEnvironment('./'+xode_filename+'.xode', realtime=False)
 
     # Start controller
     print '>>> Starting Controller'

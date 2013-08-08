@@ -31,18 +31,6 @@ class HumanControlDevice(object):
         return
 
 
-    def set_initial_pos(self, pos):
-        self._prev_pos = np.array(pos)
-        self._cur_pos = np.array(pos)
-        return
-
-
-    def set_initial_angle(self, angle):
-        self._prev_angle = np.array(angle)
-        self._cur_angle = np.array(angle)
-        return
-
-
     def update(self):
         self._t += self._dt
 
@@ -89,6 +77,6 @@ class HumanControlDevice(object):
         the sinusoidal oscillations from the starting position.
         """
         a = np.array([0.15, 0.0, 0.15])
-        f = np.array([0.4, 0.2, 0.1])
+        f = np.array([1.0, 0.0, 0.5])
         y = a * np.sin(2.0 * np.pi * self._t * f)
         return y
