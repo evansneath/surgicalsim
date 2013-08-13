@@ -93,13 +93,19 @@ def init():
     xode_model = HumanControlModel(xode_filename)
     xode_model.writeXODE('./'+xode_filename)
 
-    # Start environment.
+    # Start environment
     print '>>> Starting Environment'
     env = HumanControlEnvironment('./'+xode_filename+'.xode', realtime=False)
 
     # Start controller
     print '>>> Starting Controller'
     omni = HumanControlDevice()
+
+    ip = raw_input('<<< Enter host ip: ')
+    port = int(raw_input('<<< Enter tcp port: '))
+
+    # Try to connect to the Phantom Omni controller
+    omni.connect(ip, port)
 
     # Start kinematics engine
     kinematics = None
