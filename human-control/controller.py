@@ -3,7 +3,9 @@
 import socket
 import struct
 import numpy as np
+from multiprocessing import Process, Value
 
+G_OMNI_MSG_FMT = '>bifffffff'
 
 class PhantomOmniData(dict):
     """PhantomOmniData class
@@ -38,8 +40,9 @@ class PhantomOmniData(dict):
 
 
     def parse(self, raw_data):
-        # (docked, 
-        unpacked_data = struct.unpack('>bifffffff', raw_data)
+        global G_OMNI_MSG_FMT
+
+        unpacked_data = struct.unpack(G_OMNI_MSG_FMT, raw_data)
 
         self['docked'] = unpacked_data[0] == True
         self['button1'] = unpacked_data[1] & self.BUTTON_1
@@ -59,21 +62,37 @@ class PhantomOmniData(dict):
         return
 
 
-class HumanControlDevice(object):
+class HumanControlDevice(Process):
     """HumanControlDevice
 
     Gets positional and pointing vector information from the Phantom Omni
     6-DOF controller. This controller data is then used to control the
     robotic simulation enviroment of the Mitsubishi PA10 robotic arm.
     """
-    MSG_SIZ = 90
+    def __init__(self, shared_data):
+        """Initialization
 
-    def __init__(self):
+        Initializes the superclass of multiprocess.Process and attributes
+        necessary for determining position, rotation, and velocities.
+
+        Arguments:
+            shared_data: Stores the latest packet of data received by the
+                Phantom Omni device.
+        """
+        global G_OMNI_MSG_FMT
+
+        super(HumanControlDevice, self).__init__()
+
+        self._OMNI_MSG_SIZ = struct.calcsize(G_OMNI_MSG_FMT)
+
+        self._data = shared_data
+        self._lock = multiprocessing.Lock()
+        
         # Create the TCP socket to communicate to the controller
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # This holds the client socket object upon connection
-        self.q = None
+        self._q = None
 
         self._t = 0.0 # [s]
         self._dt = 0.01 # [s]
@@ -88,34 +107,9 @@ class HumanControlDevice(object):
 
         self._cur_angular_vel = np.array([0.0, 0.0, 0.0])
 
-        return
-
-
-    def connect(self, ip, port):
-        # Determine the ip and port of the controller to connect
-        self.s.bind((ip, port))
-
-        # Open the socket for one client
-        self.s.listen(1)
-
-        print '>>> Listening for Phantom Omni connection...'
-
-        # Connect to the client socket
-        (self.q, q_addr) = self.s.accept()
-
-        print '>>> Connected to Phantom Omni at %s' % str(q_addr)
+        self._latest_data = None
 
         return
-
-
-    def receive_data(self):
-        raw_data = self.s.recv(self.MSG_SIZ)
-        data = PhantomOmniData(raw_data)
-        return data
-
-
-    def disconnect(self):
-        self.s.close()
 
 
     def set_dt(self, dt):
@@ -123,11 +117,41 @@ class HumanControlDevice(object):
         return
 
 
-    def update(self):
-        data = self.receive_data()
+    def run(self):
+        while True:
 
-        self._t += self._dt
 
+        return
+            
+
+    def connect(self, ip, port):
+        # Determine the ip and port of the controller to connect
+        self._s.bind((ip, port))
+
+        # Open the socket for one client
+        self._s.listen(1)
+
+        print '>>> Listening for Phantom Omni connection...'
+
+        # Connect to the client socket
+        (self._q, q_addr) = self._s.accept()
+
+        print '>>> Connected to Phantom Omni at %s' % str(q_addr)
+
+        return
+
+
+    def disconnect(self):
+        self._s.close()
+
+
+    def _receive_data(self):
+        raw_data = self._s.recv(self._OMNI_MSG_SIZ)
+        data = PhantomOmniData(raw_data)
+        return data
+
+
+    def _update(self, data):
         # Get the new tooltip position from the device
         self._prev_pos = self._cur_pos.copy()
         self._cur_pos = data['position']
