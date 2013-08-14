@@ -19,10 +19,10 @@ class HumanControlEnvironment(ODEEnvironment):
         step: Step the world by 'dt' seconds.
     """
     def __init__(self, xode_filename, renderer=True, realtime=True,
-            ip='127.0.0.1', port='21590', buf='16384'):
+            ip='127.0.0.1', port='21590', buf='16384', gravity=0.0):
         # Initialize the superclass object
         super(HumanControlEnvironment, self).__init__(
-            renderer, realtime, ip, port, buf
+            renderer, realtime, ip, port, buf, gravity
         )
 
         # Load XODE file (This is generated prior to env initialization)
