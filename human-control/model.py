@@ -6,8 +6,6 @@ import numpy as np
 
 class HumanControlModel(XODEfile):
     def __init__(self, name, **kwargs):
-        print super(HumanControlModel, self)
-        super(HumanControlModel, self).__init__(name, **kwargs)
 
         self.y_floor = -0.3
         self.insertFloor(y=self.y_floor)

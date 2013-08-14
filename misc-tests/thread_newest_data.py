@@ -2,7 +2,6 @@
 
 import time
 import multiprocessing
-import Queue
 
 G_SLEEPTIME = 1
 

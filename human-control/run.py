@@ -7,7 +7,7 @@ import time
 
 from model import HumanControlModel
 from environment import HumanControlEnvironment
-from controller import HumanControlDevice
+from controller import PhantomOmniInterface
 
 
 def run():
@@ -98,8 +98,8 @@ def init():
     env = HumanControlEnvironment('./'+xode_filename+'.xode', realtime=False)
 
     # Start controller
-    print '>>> Starting Controller'
-    omni = HumanControlDevice()
+    print '>>> Starting Phantom Omni Interface'
+    omni = PhantomOmniInterface()
 
     ip = raw_input('<<< Enter host ip: ')
     port = int(raw_input('<<< Enter tcp port: '))

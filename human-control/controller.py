@@ -3,9 +3,10 @@
 import socket
 import struct
 import numpy as np
-from multiprocessing import Process, Value
+import multiprocessing
 
 G_OMNI_MSG_FMT = '>bifffffff'
+
 
 class PhantomOmniData(dict):
     """PhantomOmniData class
@@ -51,52 +52,52 @@ class PhantomOmniData(dict):
             unpacked_data[2],
             unpacked_data[3],
             unpacked_data[4]
-        ]
+        ])
         self['angle'] = np.array([
             unpacked_data[5],
             unpacked_data[6],
             unpacked_data[7]
-        ]
+        ])
         self['dt'] = unpacked_data[8]
 
         return
 
 
-class HumanControlDevice(Process):
+class PhantomOmniInterface(object):
     """HumanControlDevice
 
     Gets positional and pointing vector information from the Phantom Omni
     6-DOF controller. This controller data is then used to control the
     robotic simulation enviroment of the Mitsubishi PA10 robotic arm.
     """
-    def __init__(self, shared_data):
-        """Initialization
+    def __init__(self, dt=0.01):
+        super(PhantomOmniInterface, self).__init__()
 
-        Initializes the superclass of multiprocess.Process and attributes
-        necessary for determining position, rotation, and velocities.
+        # Create a shared array of the length of one message. This will be
+        # used to store the most current data from the Phantom Omni controller
+        data_len = struct.calcsize(G_OMNI_MSG_FMT)
 
-        Arguments:
-            shared_data: Stores the latest packet of data received by the
-                Phantom Omni device.
-        """
-        global G_OMNI_MSG_FMT
+        # NOTE: Type 'b' = byte (actually signed char). data_len = array size
+        self._cur_data = multiprocessing.Array('b', data_len, lock=True)
 
-        super(HumanControlDevice, self).__init__()
+        # Create an instance of a Phantom Omni thread. This will act as a
+        # separate process which always stores the latest information from the
+        # Phantom Omni device
+        self._t = PhantomOmniThread(self._cur_data)
 
-        self._OMNI_MSG_SIZ = struct.calcsize(G_OMNI_MSG_FMT)
-
-        self._data = shared_data
-        self._lock = multiprocessing.Lock()
-        
         # Create the TCP socket to communicate to the controller
         self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # This holds the client socket object upon connection
         self._q = None
 
+        # Initialize time and difference in time between polling. dt is used
+        # only in calculations to determine linear/angular velocities
         self._t = 0.0 # [s]
-        self._dt = 0.01 # [s]
+        self._dt = dt # [s]
 
+        # Create arrays to hold positional/rotational values and their
+        # respective velocities. Initialize to zeros
         self._prev_pos = np.array([0.0, 0.0, 0.0])
         self._cur_pos = np.array([0.0, 0.0, 0.0])
 
@@ -106,26 +107,32 @@ class HumanControlDevice(Process):
         self._cur_angle = np.array([0.0, 0.0, 0.0])
 
         self._cur_angular_vel = np.array([0.0, 0.0, 0.0])
-
-        self._latest_data = None
-
         return
 
 
     def set_dt(self, dt):
+        """Set dt
+
+        Sets the delta-time variable. This is used for varying dt for use in
+        real-time systems.
+
+        Attributes:
+            dt: The difference in time between this and the last update.
+        """
         self._dt = dt
         return
 
 
-    def run(self):
-        while True:
-
-
-        return
-            
-
     def connect(self, ip, port):
-        # Determine the ip and port of the controller to connect
+        """Connect to TCP Client
+
+        Attempts a connection to an incoming client TCP socket.
+
+        Attributes:
+            ip: The ip address of the incoming connection as a string.
+            port: The port of the incoming connection as a int.
+        """
+        # Set the server socket to listen to the given ip and port
         self._s.bind((ip, port))
 
         # Open the socket for one client
@@ -138,30 +145,48 @@ class HumanControlDevice(Process):
 
         print '>>> Connected to Phantom Omni at %s' % str(q_addr)
 
+        # Start the Phantom Omni thread. The thread will continue until the
+        # interface is killed. Latest gathered data from the thread will be
+        # found in the _cur_data shared value object
+        self._t.start()
+
         return
 
 
     def disconnect(self):
+        """Disconnect from TCP Client
+
+        Attempts to disconnect the TCP server from the incoming client.
+        """
+        # Terminate the data collection thread
+        self._t.terminate()
+
+        # Close the TCP connection
         self._s.close()
 
-
-    def _receive_data(self):
-        raw_data = self._s.recv(self._OMNI_MSG_SIZ)
-        data = PhantomOmniData(raw_data)
-        return data
+        return
 
 
-    def _update(self, data):
+    def update(self):
+        """Update Values
+
+        Gets the latest Phantom Omni data from the messaging thread. The
+        method updates each positional, rotational, and velocity array with
+        appropriate calculations.
+        """
+        # Grab the newest Omni data from the shared thread value
+        parsed_data = PhantomOmniData(raw_data=self._cur_data)
+
         # Get the new tooltip position from the device
         self._prev_pos = self._cur_pos.copy()
-        self._cur_pos = data['position']
+        self._cur_pos = parsed_data['position']
 
         # Calculate the change in linear velocity
         self._cur_linear_vel = (self._cur_pos - self._prev_pos) / self._dt
 
         # Get the new tooltip angle from the device
         self._prev_angle = self._cur_angle.copy()
-        self._cur_angle = data['angle']
+        self._cur_angle = parsed_data['angle']
 
         self._cur_angular_vel = (self._cur_angle - self._prev_angle) / self._dt
 
@@ -169,29 +194,79 @@ class HumanControlDevice(Process):
 
 
     def get_linear_vel(self):
+        """Get Linear Velocity
+
+        Returns the current linear velocity of the Phantom Omni controller
+        in meters per second.
+
+        Returns:
+            1x3 numpy array of (x, y, z) velocities in m/s.
+        """
         return self._cur_linear_vel
 
 
     def get_angular_vel(self):
+        """Get Angular Velocity
+
+        Returns the current angular velocity of the Phantom Omni controller
+        in radians per second.
+
+        Returns:
+            1x3 numpy array of (x, y, z) angular velocities in rad/s.
+        """
         return self._cur_angular_vel
 
 
     def get_pos(self):
+        """Get Position
+
+        Returns the current position of the Phantom Omni controller in meters.
+
+        Returns:
+            1x3 numpy array of (x, y, z) positions in m.
+        """
         return self._cur_pos
 
 
     def _get_angle(self):
+        """Get Angle
+
+        Returns the current angle of the Phantom Omni controller in radians.
+
+        Returns:
+            1x3 numpy array of (x, y, z) angles in rad.
+        """
         return self._cur_angle
 
 
-    def _oscillation_test(self):
-        """Oscillation Test
+class PhantomOmniThread(multiprocessing.Process):
+    def __init__(self, shared_array):
+        """Initialization
 
-        Returns a 3-dimensional array of sin values as a function of time.
-        "amps" and "freqs" are 3-element adjustable parameters to control 
-        the sinusoidal oscillations from the starting position.
+        Initializes the superclass of multiprocess.Process and attributes
+        necessary for determining position, rotation, and velocities.
+
+        Arguments:
+            shared_array: Stores the latest packet of data received by the
+                Phantom Omni device. This is raw byte data format.
         """
-        a = np.array([0.15, 0.0, 0.15])
-        f = np.array([1.0, 0.0, 0.5])
-        y = a * np.sin(2.0 * np.pi * self._t * f)
-        return y
+        super(PhantomOmniThread, self).__init__()
+        self._data = shared_array
+        self._data_size = len(self._data)
+        
+        return
+
+
+    def run(self):
+        """Run (Subclassed)
+
+        A subclassed function from multiprocessing.Process class. This method
+        is called when the multiprocess.Process.start() method is invoked.
+        This particular implementation is an infinite loop which gathers TCP
+        incoming messages.
+        """
+        while True:
+            with self._lock:
+                self._data = list(self._s.recv(self._data_size))
+
+        return
