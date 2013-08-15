@@ -44,11 +44,14 @@ def run():
             env.step(paused=True)
             continue
 
+        # Populate the controller with the most up-to-date data
         omni.update()
 
+        # Get the updated linear/angular velocities of the tooltip
         linear_vel = omni.get_linear_vel()
         angular_vel = omni.get_angular_vel()
 
+        # Set the linear and angular velocities of the simulation
         env.set_group_linear_vel('pointer', linear_vel)
         env.set_group_angular_vel('pointer', angular_vel)
 

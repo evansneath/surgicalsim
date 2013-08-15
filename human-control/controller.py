@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import array
+import time
 import socket
 import struct
 import numpy as np
@@ -43,8 +45,10 @@ class PhantomOmniData(dict):
     def parse(self, raw_data):
         global G_OMNI_MSG_FMT
 
+        # Unpack the byte data with struct module
         unpacked_data = struct.unpack(G_OMNI_MSG_FMT, raw_data)
 
+        # Load all of the unpacked data into dictionary items for easy lookup
         self['docked'] = unpacked_data[0] == True
         self['button1'] = unpacked_data[1] & self.BUTTON_1
         self['button2'] = unpacked_data[1] & self.BUTTON_2
@@ -79,17 +83,12 @@ class PhantomOmniInterface(object):
 
         # NOTE: Type 'b' = byte (actually signed char). data_len = array size
         self._cur_data = multiprocessing.Array('b', data_len, lock=True)
+        self._is_connected = multiprocessing.Value('b', False)
 
         # Create an instance of a Phantom Omni thread. This will act as a
         # separate process which always stores the latest information from the
         # Phantom Omni device
-        self._t = PhantomOmniThread(self._cur_data)
-
-        # Create the TCP socket to communicate to the controller
-        self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        # This holds the client socket object upon connection
-        self._q = None
+        self._thread = None
 
         # Initialize time and difference in time between polling. dt is used
         # only in calculations to determine linear/angular velocities
@@ -132,23 +131,22 @@ class PhantomOmniInterface(object):
             ip: The ip address of the incoming connection as a string.
             port: The port of the incoming connection as a int.
         """
-        # Set the server socket to listen to the given ip and port
-        self._s.bind((ip, port))
-
-        # Open the socket for one client
-        self._s.listen(1)
-
-        print '>>> Listening for Phantom Omni connection...'
-
-        # Connect to the client socket
-        (self._q, q_addr) = self._s.accept()
-
-        print '>>> Connected to Phantom Omni at %s' % str(q_addr)
+        # Populate the thread object, hand over the connected socket
+        self._thread = PhantomOmniThread(
+            ip,
+            port,
+            self._is_connected,
+            self._cur_data
+        )
 
         # Start the Phantom Omni thread. The thread will continue until the
         # interface is killed. Latest gathered data from the thread will be
         # found in the _cur_data shared value object
-        self._t.start()
+        self._thread.start()
+
+        # Wait around until the thread has successfully connected
+        while not self._is_connected.value:
+            time.sleep(0.01)
 
         return
 
@@ -159,10 +157,7 @@ class PhantomOmniInterface(object):
         Attempts to disconnect the TCP server from the incoming client.
         """
         # Terminate the data collection thread
-        self._t.terminate()
-
-        # Close the TCP connection
-        self._s.close()
+        self._thread.terminate()
 
         return
 
@@ -174,8 +169,11 @@ class PhantomOmniInterface(object):
         method updates each positional, rotational, and velocity array with
         appropriate calculations.
         """
-        # Grab the newest Omni data from the shared thread value
-        parsed_data = PhantomOmniData(raw_data=self._cur_data)
+        # Convert shared data array into a byte list form
+        raw_data = array.array('b', list(self._cur_data)).tostring()
+
+        # Grab the newest Omni data from the shared thread array
+        parsed_data = PhantomOmniData(raw_data=raw_data)
 
         # Get the new tooltip position from the device
         self._prev_pos = self._cur_pos.copy()
@@ -240,19 +238,38 @@ class PhantomOmniInterface(object):
 
 
 class PhantomOmniThread(multiprocessing.Process):
-    def __init__(self, shared_array):
+    def __init__(self, tcp_ip, tcp_port, is_connected, shared_array):
         """Initialization
 
         Initializes the superclass of multiprocess.Process and attributes
         necessary for determining position, rotation, and velocities.
 
         Arguments:
+            tcp_ip: The ip address of the client connection.
+            tcp_port: The port of the client connection.
             shared_array: Stores the latest packet of data received by the
                 Phantom Omni device. This is raw byte data format.
         """
         super(PhantomOmniThread, self).__init__()
+
+        # Populate the TCP ip and port attributes
+        self._ip = tcp_ip
+        self._port = tcp_port
+
+        # Create the TCP socket to communicate to the controller
+        self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # This holds the client socket object upon connection
+        self._q = None
+
+        # Store the shared array to populate with the latest data
         self._data = shared_array
+
+        # Calculate the size of the array so we don't have to do this more
+        # than once
         self._data_size = len(self._data)
+
+        self._is_connected = is_connected
         
         return
 
@@ -265,8 +282,25 @@ class PhantomOmniThread(multiprocessing.Process):
         This particular implementation is an infinite loop which gathers TCP
         incoming messages.
         """
+        # Set the server socket to listen to the given ip and port
+        self._s.bind((self._ip, self._port))
+
+        # Open the socket for one client
+        self._s.listen(1)
+
+        print '>>> Listening for Phantom Omni connection...'
+
+        # Connect to the client socket
+        (self._q, q_addr) = self._s.accept()
+        self._is_connected.value = True
+
+        print '>>> Connected to Phantom Omni at %s:%d' % q_addr
+
         while True:
-            with self._lock:
-                self._data = list(self._s.recv(self._data_size))
+            # Get newest data until this process is terminated
+            incoming = self._q.recv(self._data_size)
+
+            for index, byte in enumerate(incoming):
+                self._data[index] = ord(byte)
 
         return
