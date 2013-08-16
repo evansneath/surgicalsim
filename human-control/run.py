@@ -8,6 +8,7 @@ import time
 from model import HumanControlModel
 from environment import HumanControlEnvironment
 from controller import PhantomOmniInterface
+from viewer import ViewerInterface
 
 
 def run():
@@ -20,7 +21,7 @@ def run():
     omni = None
     kinematics = None
 
-    (env, omni, kinematics) = init()
+    (env, viewer, omni, kinematics) = init()
 
     t = 0.0 # [s]
 
@@ -100,6 +101,12 @@ def init():
     print '>>> Starting Environment'
     env = HumanControlEnvironment('./'+xode_filename+'.xode', realtime=False)
 
+    # Start viewer
+    #print '>>> Starting viewer'
+    viewer = None
+    #viewer = ViewerInterface()
+    #viewer.start()
+
     # Start controller
     print '>>> Starting Phantom Omni Interface'
     omni = PhantomOmniInterface()
@@ -113,7 +120,7 @@ def init():
     # Start kinematics engine
     kinematics = None
 
-    return (env, omni, kinematics)
+    return (env, viewer, omni, kinematics)
 
 
 if __name__ == '__main__':
