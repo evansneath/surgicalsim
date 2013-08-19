@@ -49,7 +49,13 @@ def main():
         t_send = time.time() - t_start
 
         # Sleep the difference of the time so we're only sending every dt seconds
-        time.sleep(dt - t_send)
+        t_diff = dt - t_send
+
+        if t_diff > 0.0:
+            time.sleep(t_diff)
+        else:
+            print 'Over RT threshold!'
+
         t += dt
 
     return
