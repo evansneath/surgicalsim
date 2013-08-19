@@ -12,7 +12,7 @@ def main():
     TCP_PORT = 5555
 
     # Define the message format and calculate the size
-    MSG_FMT = '>bifffffff'
+    MSG_FMT = '!iiddddddd'
     msg_siz = struct.calcsize(MSG_FMT)
 
     # Attempt to connect to the TCP server
