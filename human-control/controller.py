@@ -7,7 +7,7 @@ import struct
 import numpy as np
 import multiprocessing
 
-G_OMNI_MSG_FMT = '>bifffffff'
+G_OMNI_MSG_FMT = '!iiddddddd'
 
 
 class PhantomOmniData(dict):

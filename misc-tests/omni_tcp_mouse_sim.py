@@ -1,0 +1,124 @@
+#!/usr/bin/env python
+
+import socket
+import struct
+import time
+
+try:
+    import AppKit
+except ImportError as e:
+    print ('AppKit module is required. Install XCode and run this'+
+           ' program outside of virtual environments')
+    exit()
+
+try:
+    import Quartz
+except ImportError as e:
+    print ('Quartz module not found. Make sure this program is run'+
+           ' outside of virtual environments')
+    exit()
+
+"""
+NOTES:
+
+    This program connects to a local TCP server and feeds
+    current mouse data. To the surgical-sim human control
+    application.
+
+    The method in which the mouse position is captured here
+    is only compatible with OSX operating system bindings.
+
+    AppKit is also required. This is an standard OSX python module.
+    If import errors occur regarding AppKit, make sure the program
+    is executed outside of virtual environments and that AppKit is
+    available in the current python's site-packages directory.
+
+    Because this program must be run outside of virtual environments,
+    I removed all use of non-standard python libraries.
+"""
+
+def main():
+    # Use hardcoded TCP connection ip and port
+    TCP_IP = '127.0.0.1'
+    TCP_PORT = 5555
+
+    # Define the message format and calculate the size
+    MSG_FMT = '!iiddddddd'
+    msg_siz = struct.calcsize(MSG_FMT)
+
+    # Get the screen size information to scale the movements to a smaller area
+    screen_width = Quartz.CGDisplayPixelsWide(0)
+    screen_height = Quartz.CGDisplayPixelsHigh(0)
+
+    x_scale = 0.3
+    y_scale = 1.0
+    z_scale = -0.3
+
+    # Attempt to connect to the TCP server
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((TCP_IP, TCP_PORT))
+
+    # Keep track of the current time
+    t = 0.0
+
+    # Output 500 times per second
+    dt = 1.0 / 500.0
+
+    print 'Begin sending...'
+
+    while True:
+        t_start = time.time()
+
+        # Package 
+        pos = get_mouse_pos(screen_width, screen_height, x_scale, y_scale, z_scale)
+
+        msg = struct.pack(
+            MSG_FMT,
+            False,                  # docked
+            0,                      # buttons
+            pos[0], pos[1], pos[2], # positions
+            0.0, 0.0, 0.0,          # angles
+            dt                      # dt
+        )
+
+        s.send(msg)
+        #print 'x: %f  -  y: %f  -  z: %f' % (pos[0], pos[1], pos[2])
+
+        t_send = time.time() - t_start
+
+        # Sleep the difference of the time so we're only sending every dt seconds
+        t_diff = dt - t_send
+
+        if t_diff > 0.0:
+            time.sleep(t_diff)
+        else:
+            print 'Over RT threshold!'
+
+        t += dt
+
+    return
+
+
+def get_mouse_pos(screen_width, screen_height, x_scale, y_scale, z_scale):
+    """Get Mouse Position
+
+    Gets the current mouse position on the OSX operating system. Requires
+    objective-c to run.
+    """
+    pos = [0.0, 0.1, 0.0]
+
+    # Modify only the x and z positions. The y position is locked
+    (pos[0], pos[2]) = AppKit.NSEvent.mouseLocation()
+
+    pos[0] *= x_scale / screen_width
+    pos[1] *= y_scale
+    pos[2] *= z_scale / screen_height
+
+    pos[0] -= x_scale / 2.0
+    pos[2] -= z_scale / 2.0
+
+    return pos
+
+
+if __name__ == '__main__':
+    main()
