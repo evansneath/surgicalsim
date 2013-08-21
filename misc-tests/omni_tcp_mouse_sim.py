@@ -21,9 +21,8 @@ except ImportError as e:
 """
 NOTES:
 
-    This program connects to a local TCP server and feeds
-    current mouse data. To the surgical-sim human control
-    application.
+    This program connects to a local (127.0.0.1:5555) TCP server and feeds
+    current mouse data to the surgical-sim human control application.
 
     The method in which the mouse position is captured here
     is only compatible with OSX operating system bindings.
@@ -35,6 +34,10 @@ NOTES:
 
     Because this program must be run outside of virtual environments,
     I removed all use of non-standard python libraries.
+
+    The method for capturing mouse position in OSX was derived from
+    the work of the PyUserInput module. The source code for this module
+    can be found here: https://github.com/SavinaRoja/PyUserInput
 """
 
 def main():
@@ -42,16 +45,23 @@ def main():
     TCP_IP = '127.0.0.1'
     TCP_PORT = 5555
 
-    # Define the message format and calculate the size
+    # Define the message format and calculate the size. For details on this,
+    # see human-control/controller.py
     MSG_FMT = '!iiddddddd'
     msg_siz = struct.calcsize(MSG_FMT)
 
-    # Get the screen size information to scale the movements to a smaller area
+    # Get the screen size information to normalize the mouse position
     screen_width = Quartz.CGDisplayPixelsWide(0)
     screen_height = Quartz.CGDisplayPixelsHigh(0)
 
+    # Define the scaling factors for the cursor. Note that the cursor position
+    # is normalized by screen height and screen width so that the x and y
+    # outputs are limited between 0 and 1.
+
+    # Limit the movement of the cursor to the environment table for now
     x_scale = 0.3
     y_scale = 1.0
+    # Negate to flip the z axis in order to move relative to camera position
     z_scale = -0.3
 
     # Attempt to connect to the TCP server
@@ -69,8 +79,14 @@ def main():
     while True:
         t_start = time.time()
 
-        # Package 
-        pos = get_mouse_pos(screen_width, screen_height, x_scale, y_scale, z_scale)
+        # Get the most current mouse position. Normalized and scaled
+        pos = get_mouse_pos(
+            screen_width,
+            screen_height,
+            x_scale,
+            y_scale,
+            z_scale
+        )
 
         msg = struct.pack(
             MSG_FMT,
@@ -92,6 +108,9 @@ def main():
         if t_diff > 0.0:
             time.sleep(t_diff)
         else:
+            # The calculation and sending took longer than our dt. We won't do
+            # anything about this here, but it should be noted. Only worry
+            # about this is the message shows up repetitively
             print 'Over RT threshold!'
 
         t += dt
@@ -104,16 +123,27 @@ def get_mouse_pos(screen_width, screen_height, x_scale, y_scale, z_scale):
 
     Gets the current mouse position on the OSX operating system. Requires
     objective-c to run.
+
+    Arguments:
+        screen_width: The width of the screen in pixels.
+        screen_height: The height of the screen in pixels.
+        x_scale: The value in meters to scale the normalized 'x' position.
+        y_scale: Same as x_scale for the 'y' position.
+        z_scale: Same and x_scale and y_scale for the 'z' position.
     """
+    # Define all starting positions. This is really only useful if the
+    # axis is locked, otherwise these starting positions will be overwritten
     pos = [0.0, 0.1, 0.0]
 
     # Modify only the x and z positions. The y position is locked
     (pos[0], pos[2]) = AppKit.NSEvent.mouseLocation()
 
+    # Scale/normalize
     pos[0] *= x_scale / screen_width
     pos[1] *= y_scale
     pos[2] *= z_scale / screen_height
 
+    # Shift the range from (0.0, 1.0) to (0.5, 0.5)
     pos[0] -= x_scale / 2.0
     pos[2] -= z_scale / 2.0
 
