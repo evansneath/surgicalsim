@@ -7,16 +7,16 @@ import time
 try:
     import AppKit
 except ImportError as e:
-    print ('AppKit module is required. Install XCode and run this'+
-           ' program outside of virtual environments')
-    exit()
+    print ('AppKit module not found. Install XCode and run this ' +
+           'program outside of virtual environments')
+    raise e
 
 try:
     import Quartz
 except ImportError as e:
-    print ('Quartz module not found. Make sure this program is run'+
-           ' outside of virtual environments')
-    exit()
+    print ('Quartz module not found. Install XCode and run this ' +
+           'program outside of virtual environments')
+    raise e
 
 """
 NOTES:
@@ -66,7 +66,12 @@ def main():
 
     # Attempt to connect to the TCP server
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((TCP_IP, TCP_PORT))
+
+    try:
+        s.connect((TCP_IP, TCP_PORT))
+    except socket.error as e:
+        print '>>> Unable to connect to server: %s' % (e.strerror)
+        return
 
     # Keep track of the current time
     t = 0.0
@@ -74,7 +79,7 @@ def main():
     # Output 500 times per second
     dt = 1.0 / 500.0
 
-    print 'Begin sending...'
+    print '>>> Begin sending...'
 
     while True:
         t_start = time.time()
@@ -97,8 +102,11 @@ def main():
             dt                      # dt
         )
 
-        s.send(msg)
-        #print 'x: %f  -  y: %f  -  z: %f' % (pos[0], pos[1], pos[2])
+        try:
+            s.send(msg)
+        except socket.error as e:
+            print '>>> Unable to send packet: %s' % (e.strerror)
+            return
 
         t_send = time.time() - t_start
 
@@ -111,7 +119,7 @@ def main():
             # The calculation and sending took longer than our dt. We won't do
             # anything about this here, but it should be noted. Only worry
             # about this is the message shows up repetitively
-            print 'Over RT threshold!'
+            print '>>> Over RT threshold!'
 
         t += dt
 
@@ -122,7 +130,7 @@ def get_mouse_pos(screen_width, screen_height, x_scale, y_scale, z_scale):
     """Get Mouse Position
 
     Gets the current mouse position on the OSX operating system. Requires
-    objective-c to run.
+    objective-c to run. OSX Quartz and AppKit must be available modules.
 
     Arguments:
         screen_width: The width of the screen in pixels.
@@ -130,6 +138,9 @@ def get_mouse_pos(screen_width, screen_height, x_scale, y_scale, z_scale):
         x_scale: The value in meters to scale the normalized 'x' position.
         y_scale: Same as x_scale for the 'y' position.
         z_scale: Same and x_scale and y_scale for the 'z' position.
+
+    Returns:
+        3-item list containing the (x, y, z) positioning of the cursor.
     """
     # Define all starting positions. This is really only useful if the
     # axis is locked, otherwise these starting positions will be overwritten

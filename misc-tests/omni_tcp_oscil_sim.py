@@ -17,7 +17,12 @@ def main():
 
     # Attempt to connect to the TCP server
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((TCP_IP, TCP_PORT))
+
+    try:
+        s.connect((TCP_IP, TCP_PORT))
+    except socket.error as e:
+        print '>>> Unable to connect to server: %s' % (e.strerror)
+        return
 
     # Keep track of the current time
     t = 0.0
@@ -27,14 +32,16 @@ def main():
 
     times = []
 
-    print 'Begin sending...'
+    print '>>> Begin sending...'
 
     while True:
         t_start = time.time()
 
-        # Package 
+        # Get the time-dependent position of the cursor. This is a sinusoidal
+        # function of time
         pos = calc_oscillation(t)
 
+        # Package the position for sending over TCP. Gimble angles are locked
         msg = struct.pack(
             MSG_FMT,
             False,                  # docked
@@ -44,7 +51,12 @@ def main():
             dt                      # dt
         )
 
-        s.send(msg)
+        # Attempt to send a TCP packet
+        try:
+            s.send(msg)
+        except socket.error as e:
+            print '>>> Unable to send packet: %s' % (e.strerror)
+            return
 
         t_send = time.time() - t_start
 
@@ -52,9 +64,13 @@ def main():
         t_diff = dt - t_send
 
         if t_diff > 0.0:
+            # Sleep to maintain the sending rate
             time.sleep(t_diff)
         else:
-            print 'Over RT threshold!'
+            # Real-time constraints are not being met. This simply means that the
+            # processing and sending are greater than the set 'dt' value. This does
+            # not necessarily mean that the server is receiving old/faulty data
+            print '>>> Over RT threshold!'
 
         t += dt
 
@@ -62,10 +78,22 @@ def main():
 
 
 def calc_oscillation(t):
+    """Calculate Oscillation
+
+    Given a time in seconds, the position of the cursor is given with
+    amplitude and frequency hardcoded for each x, y, and z positions.
+
+    Arguments:
+        t: The time to calculate the oscillations in seconds.
+
+    Returns:
+        A 3-dimensional numpy array with (x, y, z) cursor positions.
+    """
+    # To modify amplitude and frequency, modify these parameters
     amp = np.array([0.15, 0.0, 0.15])
     freq = np.array([1.0, 0.0, 2.0])
-    y = amp * np.sin(2.0 * np.pi * freq * t)
-    return y
+
+    return amp * np.sin(2.0 * np.pi * freq * t)
 
 
 if __name__ == '__main__':
