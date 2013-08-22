@@ -21,7 +21,7 @@ def run():
     omni = None
     kinematics = None
 
-    (env, viewer, omni, kinematics) = init()
+    (env, omni, kinematics) = init()
 
     t = 0.0 # [s]
 
@@ -84,7 +84,7 @@ def init():
     required to run the human data capture simulation.
 
     Returns:
-        (env, viewer, omni) - The three class objects used to run the
+        (env, omni, kinematics) - The three class objects used to run the
         simulation for human data capture.
     """
     xode_filename = 'model'
@@ -103,10 +103,9 @@ def init():
     env = HumanControlEnvironment('./'+xode_filename+'.xode', realtime=False)
 
     # Start viewer
-    #print '>>> Starting viewer'
-    viewer = None
-    #viewer = ViewerInterface()
-    #viewer.start()
+    print '>>> Starting viewer'
+    viewer = ViewerInterface()
+    viewer.start()
 
     # Start controller
     print '>>> Starting Phantom Omni Interface'
@@ -123,14 +122,14 @@ def init():
     # Start kinematics engine
     kinematics = None
 
-    return (env, viewer, omni, kinematics)
+    return (env, omni, kinematics)
 
 
 if __name__ == '__main__':
     try:
         run()
     except KeyboardInterrupt as e:
-        print '\n>>> Exiting'
+        print '\n>>> Exiting main loop'
         ode.CloseODE()
 
     exit()
