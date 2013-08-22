@@ -139,6 +139,9 @@ class PhantomOmniInterface(object):
             self._cur_data
         )
 
+        # Make this a daemon process (kill it when the parent dies)
+        self._thread.daemon = True
+
         # Start the Phantom Omni thread. The thread will continue until the
         # interface is killed. Latest gathered data from the thread will be
         # found in the _cur_data shared value object

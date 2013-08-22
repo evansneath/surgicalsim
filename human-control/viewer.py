@@ -77,7 +77,8 @@ class Viewer(ODEViewer):
             ownIP=viewer_ip,
             port=port,
             buf=buffer,
-            verbose=verbose
+            verbose=verbose,
+            window_name='Surgical-Sim'
         )
 
         return

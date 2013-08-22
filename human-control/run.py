@@ -11,27 +11,98 @@ from controller import PhantomOmniInterface
 from viewer import ViewerInterface
 
 
-def run():
-    step_count = 0
-
-    paused = False
-    stopped = False
-
+def main():
     env = None
     omni = None
     kinematics = None
+    viewer = None
 
-    (env, omni, kinematics) = init()
+    try:
+        # Initialize all module of the simulation
+        print '>>> Initializing...'
+        (env, omni, kinematics, viewer) = init()
 
-    t = 0.0 # [s]
+        # Continue to execute the main simulation loop
+        print '>>> Running...'
+        event_loop(env, omni, kinematics, viewer)
+    except KeyboardInterrupt as e:
+        print '\n>>> Cleaning up...'
+        clean_up(env, omni, kinematics, viewer)
+        print '>>> Exiting'
 
-    # Run the simulation at 60 frames per second
+    return
+
+
+def init():
+    """Initialize Human Control Simulation
+
+    Creates the environment, viewer, and (Phantom Omni) controller objects
+    required to run the human data capture simulation.
+
+    Returns:
+        (env, omni, kinematics, viewer) - The four class objects used to run
+            simulation for human data capture.
+    """
+    xode_filename = 'model'
+
+    # Generate the XODE file
+    print '>>> Generating world model'
+    if os.path.exists('./'+xode_filename+'.xode'):
+        os.remove('./'+xode_filename+'.xode')
+
+    #xode_model = TestArmModel(xode_filename)
+    xode_model = HumanControlModel(xode_filename)
+    xode_model.writeXODE('./'+xode_filename)
+
+    # Start environment
+    print '>>> Starting environment'
+    env = HumanControlEnvironment('./'+xode_filename+'.xode', realtime=False)
+
+    # Start viewer
+    print '>>> Starting viewer'
+    viewer = ViewerInterface()
+    viewer.start()
+
+    # Start controller
+    print '>>> Starting Phantom Omni interface'
+    omni = PhantomOmniInterface()
+
+    #ip = raw_input('<<< Enter host ip: ')
+    #port = int(raw_input('<<< Enter tcp port: '))
+    ip = '127.0.0.1'
+    port = 5555
+
+    # Try to connect to the Phantom Omni controller
+    omni.connect(ip, port)
+
+    # Start kinematics engine
+    kinematics = None
+
+    return (env, omni, kinematics, viewer)
+
+
+def event_loop(env, omni, kinematics, viewer):
+    """Event Loop
+
+    The main application loop where the simulation is stepped through every
+    'dt' seconds. Real-time constraints are enforced by simulation time warp.
+
+    Arguments:
+        env: The pybrain environment object describing the simulation world.
+        omni: The Phantom Omni controller interface.
+        kinematics: The kinematics calculator class for the PA10 robot.
+    """
+    paused = False
+    stopped = False
+
+    # Define the simulation frame rate
     fps = 60.0 # [Hz]
     dt = 1.0 / fps # [s]
 
+    # Keep track of time overshoot in the case that simulation time must be
+    # increased in order to maintain real-time constraints
     t_overshoot = 0.0
 
-    print '>>> Running...'
     while not stopped:
         t_start = time.time()
 
@@ -58,7 +129,6 @@ def run():
 
         # Step through the world by 1 time frame
         env.step()
-        t += dt_warped
 
         # Determine the difference in virtual vs actual time
         t_warped = dt - (time.time() - t_start)
@@ -77,59 +147,20 @@ def run():
     return
 
 
-def init():
-    """Initialize Human Control Simulation
+def clean_up(env, omni, kinematics, viewer):
+    # Kill the ODE environment objects
+    ode.CloseODE()
 
-    Creates the environment, viewer, and (Phantom Omni) controller objects
-    required to run the human data capture simulation.
+    # Kill the controller process
+    if omni is not None:
+        omni.disconnect()
 
-    Returns:
-        (env, omni, kinematics) - The three class objects used to run the
-        simulation for human data capture.
-    """
-    xode_filename = 'model'
+    # Kill the viewer process
+    if viewer is not None:
+        viewer.stop()
 
-    # Generate the XODE file
-    print '>>> Generating XODE'
-    if os.path.exists('./'+xode_filename+'.xode'):
-        os.remove('./'+xode_filename+'.xode')
-
-    #xode_model = TestArmModel(xode_filename)
-    xode_model = HumanControlModel(xode_filename)
-    xode_model.writeXODE('./'+xode_filename)
-
-    # Start environment
-    print '>>> Starting Environment'
-    env = HumanControlEnvironment('./'+xode_filename+'.xode', realtime=False)
-
-    # Start viewer
-    print '>>> Starting viewer'
-    viewer = ViewerInterface()
-    viewer.start()
-
-    # Start controller
-    print '>>> Starting Phantom Omni Interface'
-    omni = PhantomOmniInterface()
-
-    #ip = raw_input('<<< Enter host ip: ')
-    #port = int(raw_input('<<< Enter tcp port: '))
-    ip = '127.0.0.1'
-    port = 5555
-
-    # Try to connect to the Phantom Omni controller
-    omni.connect(ip, port)
-
-    # Start kinematics engine
-    kinematics = None
-
-    return (env, omni, kinematics)
+    return
 
 
 if __name__ == '__main__':
-    try:
-        run()
-    except KeyboardInterrupt as e:
-        print '\n>>> Exiting main loop'
-        ode.CloseODE()
-
-    exit()
+    main()

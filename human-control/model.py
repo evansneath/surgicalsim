@@ -14,7 +14,6 @@ class HumanControlModel(XODEfile):
         self.build_end_effector()
         self.build_test_article()
 
-        #self.centerOn('table')
         self.affixToEnvironment('table')
        
         return
@@ -24,8 +23,8 @@ class HumanControlModel(XODEfile):
         y_pos_end_effector = 0.1
 
         # Define the tooltip properties
-        m_tooltip = 0.1
-        r_tooltip = 0.01
+        m_tooltip = 1.0 # [kg]
+        r_tooltip = 0.005 # [m]
 
         siz_tooltip = np.array([r_tooltip])
         pos_tooltip = np.array([0.0, self.y_floor+y_pos_end_effector, 0.0])
@@ -36,11 +35,11 @@ class HumanControlModel(XODEfile):
                 euler=eul_tooltip, mass=m_tooltip, color=(255, 0, 0, 255))
 
         # Define the stick properties
-        m_stick = 0.1
-        l_stick = 0.1
-        w_stick = 0.005
+        m_stick = 1.0 # [kg]
+        l_stick = 0.05 # [m]
+        r_stick = 0.0025 # [m]
 
-        siz_stick = np.array([w_stick, l_stick])
+        siz_stick = np.array([r_stick, l_stick])
         pos_stick = pos_tooltip + np.array([0.0, l_stick/2.0, 0.0])
         eul_stick = np.array([90.0, 0.0, 0.0])
 
@@ -56,7 +55,7 @@ class HumanControlModel(XODEfile):
     def build_test_article(self):
         y_pos_test_article = 0.0
 
-        m_table = 1.0
+        m_table = 1.0 # [kg]
         siz_table = np.array([0.3, 0.01, 0.3])
         pos_table = np.array([0.0, self.y_floor+y_pos_test_article, 0.0])
         eul_table = np.array([0.0, 0.0, 0.0])
@@ -65,6 +64,17 @@ class HumanControlModel(XODEfile):
                 density=0.0, pos=pos_table, passSet=[],
                 euler=eul_table, mass=m_table)
 
+        # TODO: Define standard gate positions and angles for each gate (8)
+
+        # TODO: Randomize the positions and angles of some gates
+
+        # TODO: Generate the gates at these positions
+
+        return
+
+
+    def build_gate(self, article_height, gate_pos, gate_rot):
+        # 
         return
 
 
