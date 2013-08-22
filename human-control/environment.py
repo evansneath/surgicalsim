@@ -28,8 +28,8 @@ class HumanControlEnvironment(ODEEnvironment):
         # Load XODE file (This is generated prior to env initialization)
         self.loadXODE(xode_filename)
 
-        # Add actuators for all joints (7)
-        self.addActuator(actuators.JointActuator())
+        # TODO: Once kinematics for PA10 are added, add actuators for all joints (7)
+        #self.addActuator(actuators.JointActuator())
 
         self.dt = 0.01
 

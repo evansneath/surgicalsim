@@ -124,7 +124,7 @@ class Viewer(ODEViewer):
         return
 
 
-    def _keyfunc(self, c, x, y):
+    def _keyboard_callback(self, key, x, y):
         """OpenGL Key Handler Function
 
         The '_keyfunc' function in ODEViewer is the handler function for
@@ -136,14 +136,16 @@ class Viewer(ODEViewer):
             x: Unused (required for handler function).
             y: Unused (required for handler function).
         """
-        if c == ' ' and self._paused_obj is not None:
+        super(Viewer, self)._keyboard_callback(key, x, y)
+
+        if key == ' ' and self._paused_obj is not None:
             # If 'space' key is hit, pause the simulation
             self.paused = not self.paused
-            print 'PAUSE' if self.paused else 'RESUME'
-        elif c == 'q' and self._stopped_obj is not None:
+            print 'Pause' if self.paused else 'Resume'
+        elif key == 'q' and self._stopped_obj is not None:
             # If 'q' key is hit, exit the viewer
             self.stopped = True
-            print 'STOP'
+            print 'Stop'
 
         return
 

@@ -63,6 +63,7 @@ def run():
         # Determine the difference in virtual vs actual time
         t_warped = dt - (time.time() - t_start)
 
+        # Attempt to enforce real-time constraints
         if t_warped >= 0.0:
             # The calculation took less time than the virtual time. Sleep the
             # rest off
@@ -111,8 +112,10 @@ def init():
     print '>>> Starting Phantom Omni Interface'
     omni = PhantomOmniInterface()
 
-    ip = raw_input('<<< Enter host ip: ')
-    port = int(raw_input('<<< Enter tcp port: '))
+    #ip = raw_input('<<< Enter host ip: ')
+    #port = int(raw_input('<<< Enter tcp port: '))
+    ip = '127.0.0.1'
+    port = 5555
 
     # Try to connect to the Phantom Omni controller
     omni.connect(ip, port)
