@@ -59,10 +59,10 @@ def main():
     # outputs are limited between 0 and 1.
 
     # Limit the movement of the cursor to the environment table for now
-    x_scale = 0.3
+    x_scale = 0.5
     y_scale = 1.0
     # Negate to flip the z axis in order to move relative to camera position
-    z_scale = -0.3
+    z_scale = -0.5
 
     # Attempt to connect to the TCP server
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -144,7 +144,7 @@ def get_mouse_pos(screen_width, screen_height, x_scale, y_scale, z_scale):
     """
     # Define all starting positions. This is really only useful if the
     # axis is locked, otherwise these starting positions will be overwritten
-    pos = [0.0, 0.1, 0.0]
+    pos = [0.0, 0.0, 0.0]
 
     # Modify only the x and z positions. The y position is locked
     (pos[0], pos[2]) = AppKit.NSEvent.mouseLocation()
@@ -154,7 +154,7 @@ def get_mouse_pos(screen_width, screen_height, x_scale, y_scale, z_scale):
     pos[1] *= y_scale
     pos[2] *= z_scale / screen_height
 
-    # Shift the range from (0.0, 1.0) to (0.5, 0.5)
+    # Shift the range from (0.0, 1.0) to (-0.5, 0.5)
     pos[0] -= x_scale / 2.0
     pos[2] -= z_scale / 2.0
 
