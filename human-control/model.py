@@ -8,8 +8,7 @@ class HumanControlModel(XODEfile):
     def __init__(self, name, randomize_test_article=False, **kwargs):
         super(HumanControlModel, self).__init__(name, **kwargs)
 
-        self.y_floor = -0.3
-        self.insertFloor(y=self.y_floor)
+        self.insertFloor(y=0.0)
 
         y_top_table = self.build_test_article(randomize_test_article)
         self.build_end_effector(y_top_table)
@@ -70,12 +69,12 @@ class HumanControlModel(XODEfile):
         h_table = 0.01 # [m]
 
         # Calculate the top of the table so gate generation is easier
-        y_top_table = self.y_floor + h_table + y_pos_test_article
+        y_top_table = h_table + y_pos_test_article
 
         siz_table = np.array([l_table, h_table, l_table])
         pos_table = np.array([
             0.0,
-            self.y_floor+y_pos_test_article+(h_table/2.0),
+            y_pos_test_article+(h_table/2.0),
             0.0,
         ])
         eul_table = np.array([0.0, 0.0, 0.0])
@@ -123,8 +122,6 @@ class HumanControlModel(XODEfile):
         # Define the rotation multiplier to unnormalize the rotation value
         gate_rot_multiplier = np.pi
 
-        # TODO: Randomize gate height, position, rotation
-
         # Calculate the actual gate height [y]
         gate_height = gate_norm_height * gate_height_multiplier
 
@@ -133,6 +130,22 @@ class HumanControlModel(XODEfile):
 
         # Calculate the actual gate rotation
         gate_rot = gate_norm_rot * gate_rot_multiplier
+
+        if randomize:
+            # Randomize gate height, position, rotation
+            height_rand_limit = 0.04 # [m]
+            pos_rand_limit = 0.03 # [m]
+            rot_rand_limit = 20.0 * (np.pi / 180.0) # [rad]
+
+            # Find the random offsets for each gate's attributes
+            height_rand = height_rand_limit * ((np.random.rand(8) - 0.5) * 2.0)
+            pos_rand = pos_rand_limit * ((np.random.rand(8, 2) - 0.5) * 2.0)
+            rot_rand = rot_rand_limit * ((np.random.rand(8) - 0.5) * 2.0)
+
+            # Offset the gate attributes
+            gate_height += height_rand
+            gate_pos += pos_rand
+            gate_rot += rot_rand
 
         # Generate the gates at these positions
         for i in range(8):#range(8):
@@ -265,12 +278,10 @@ class TestArmModel(XODEfile):
     def __init__(self, name, **kwargs):
         super(TestArmModel, self).__init__(name, **kwargs)
 
-        y_floor = -1.0
-
         # Define an x position indicator
         mx = 1.0
         x_siz = [1.0, 0.1, 0.1]
-        x_pos = [0.5, y_floor+0.1/2.0, 0.0]
+        x_pos = [0.5, 0.1/2.0, 0.0]
         x_eul = [0.0, 0.0, 0.0]
 
         # Add body objects to the XODE file
@@ -284,10 +295,10 @@ class TestArmModel(XODEfile):
         omega0 = 0.0
 
         l0_siz = np.array([0.1, l0])
-        l0_pos = np.array([0.0, y_floor+lc0, 0.0])
+        l0_pos = np.array([0.0, lc0, 0.0])
         l0_eul = np.array([90.0, 0.0, omega0])
 
-        l0_end_pos = np.array([0.0, y_floor+l0, 0.0])
+        l0_end_pos = np.array([0.0, l0, 0.0])
 
         # Define link 1
         m1 = 1.0 # [kg]
@@ -349,7 +360,7 @@ class TestArmModel(XODEfile):
         self.affixToEnvironment('l0')
 
         # Insert the floor position and center the camera
-        self.insertFloor(y=y_floor)
+        self.insertFloor(y=0.0)
         self.centerOn('l1')
 
         return

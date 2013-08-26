@@ -51,7 +51,7 @@ def init():
         os.remove('./'+xode_filename+'.xode')
 
     #xode_model = TestArmModel(xode_filename)
-    xode_model = HumanControlModel(xode_filename)
+    xode_model = HumanControlModel(xode_filename, randomize_test_article=True)
     xode_model.writeXODE('./'+xode_filename)
 
     # Start environment
