@@ -1,48 +1,108 @@
 #!/usr/bin/env python
 
+# Import all external modules
+import argparse
 import os
 import ode
 import numpy as np
 import time
+import cPickle
 
+# Import all application modules
 from model import HumanControlModel
 from environment import HumanControlEnvironment
 from controller import PhantomOmniInterface
 from viewer import ViewerInterface
 
 
-def main():
-    env = None
-    omni = None
-    kinematics = None
-    viewer = None
+# Define all global objects
+g_tooltip_data = []
 
+g_env = None
+g_omni = None
+g_kinematics = None
+g_viewer = None
+
+
+def main():
+    """Main
+
+    The main driver function responsible for initializing, running the event
+    loop, and closing the application on exit.
+    """
+    args = parse_arguments()
+    
     try:
         # Initialize all module of the simulation
         print '>>> Initializing...'
-        (env, omni, kinematics, viewer) = init()
+        init(args)
 
         # Continue to execute the main simulation loop
-        print '>>> Running...'
-        event_loop(env, omni, kinematics, viewer)
+        print '>>> Running... (ctrl+c to exit)'
+        event_loop()
     except KeyboardInterrupt as e:
-        print '\n>>> Cleaning up...'
-        clean_up(env, omni, kinematics, viewer)
+        # Except the keyboard interrupt as the valid way of leaving the event
+        # loop for now
+        print '\n>>> Writing captured data'
+        write_data(args.outfile)
+
+        print '>>> Cleaning up...'
+        clean_up()
+
         print '>>> Exiting'
 
     return
 
 
-def init():
+def parse_arguments():
+    """Parse Arguments
+
+    Parsers all command line arguments for the application.
+
+    Returns:
+        An object containing all expected command line arguments.
+    """
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+            '-v', '--verbose', action='store_true',
+            help='show additional output information at runtime'
+    )
+    parser.add_argument(
+            '-r', '--randomize', action='store_true',
+            help='randomize test article gate placement'
+    )
+    parser.add_argument(
+            '-n', '--network', action='store_true',
+            help='controller is non-local. ip/port info will be prompted'
+    )
+    parser.add_argument(
+            '-o', '--outfile', action='store', default='out.dat',
+            help='target path for the tooltip pickled data'
+    )
+
+    args = parser.parse_args()
+
+    return args
+
+
+def init(args):
     """Initialize Human Control Simulation
 
     Creates the environment, viewer, and (Phantom Omni) controller objects
     required to run the human data capture simulation.
 
-    Returns:
-        (env, omni, kinematics, viewer) - The four class objects used to run
-            simulation for human data capture.
+    Globals:
+        g_env: The ODE simulation environment class object.
+        g_omni: The Phantom Omni controller interface class object.
+        g_kinematics: The PA10 kinematic simulator class object.
+        g_viewer: The OpenGL viewer interface class object.
     """
+    global g_env
+    global g_omni
+    global g_kinematics
+    global g_viewer
+
     xode_filename = 'model'
 
     # Generate the XODE file
@@ -50,48 +110,58 @@ def init():
     if os.path.exists('./'+xode_filename+'.xode'):
         os.remove('./'+xode_filename+'.xode')
 
-    #xode_model = TestArmModel(xode_filename)
-    xode_model = HumanControlModel(xode_filename, randomize_test_article=True)
+    xode_model = HumanControlModel(
+            xode_filename, randomize_test_article=args.randomize)
     xode_model.writeXODE('./'+xode_filename)
 
     # Start environment
     print '>>> Starting environment'
-    env = HumanControlEnvironment('./'+xode_filename+'.xode', realtime=False)
+    g_env = HumanControlEnvironment('./'+xode_filename+'.xode', realtime=False)
 
     # Start viewer
     print '>>> Starting viewer'
-    viewer = ViewerInterface()
-    viewer.start()
+    g_viewer = ViewerInterface(verbose=args.verbose)
+    g_viewer.start()
 
     # Start controller
     print '>>> Starting Phantom Omni interface'
-    omni = PhantomOmniInterface()
+    g_omni = PhantomOmniInterface()
 
-    #ip = raw_input('<<< Enter host ip: ')
-    #port = int(raw_input('<<< Enter tcp port: '))
-    ip = '127.0.0.1'
-    port = 5555
+    if args.network:
+        ip = raw_input('<<< Enter host ip: ')
+        port = int(raw_input('<<< Enter tcp port: '))
+    else:
+        ip = '127.0.0.1'
+        port = 5555
 
     # Try to connect to the Phantom Omni controller
-    omni.connect(ip, port)
+    g_omni.connect(ip, port)
 
     # Start kinematics engine
-    kinematics = None
+    g_kinematics = None
 
-    return (env, omni, kinematics, viewer)
+    return
 
 
-def event_loop(env, omni, kinematics, viewer):
+def event_loop():
     """Event Loop
 
     The main application loop where the simulation is stepped through every
     'dt' seconds. Real-time constraints are enforced by simulation time warp.
 
-    Arguments:
-        env: The pybrain environment object describing the simulation world.
-        omni: The Phantom Omni controller interface.
-        kinematics: The kinematics calculator class for the PA10 robot.
+    Globals:
+        g_env: The ODE simulation environment class object.
+        g_omni: The Phantom Omni controller interface class object.
+        g_kinematics: The PA10 kinematic simulator class object.
+        g_viewer: The OpenGL viewer interface class object.
+        g_tooltip_data: The tooltip data for each simulation time step.
     """
+    global g_env
+    global g_omni
+    global g_kinematics
+    global g_viewer
+    global g_tooltip_data
+
     paused = False
     stopped = False
 
@@ -109,26 +179,33 @@ def event_loop(env, omni, kinematics, viewer):
         # If the last calculation took too long, catch up
         dt_warped = dt + t_overshoot
 
-        env.set_dt(dt_warped)
-        omni.set_dt(dt_warped)
+        g_env.set_dt(dt_warped)
+        g_omni.set_dt(dt_warped)
+
+        # TODO: Update the viewer with the latest control signals
+        #viewer.update()
 
         if paused:
-            env.step(paused=True)
+            g_env.step(paused=True)
             continue
 
         # Populate the controller with the most up-to-date data
-        omni.update()
+        g_omni.update()
+
+        # Record the positional and angular tooltip data
+        data_pack = (g_omni.get_pos().tolist(), g_omni.get_angle().tolist())
+        g_tooltip_data.append(data_pack)
 
         # Get the updated linear/angular velocities of the tooltip
-        linear_vel = omni.get_linear_vel()
-        angular_vel = omni.get_angular_vel()
+        linear_vel = g_omni.get_linear_vel()
+        angular_vel = g_omni.get_angular_vel()
 
         # Set the linear and angular velocities of the simulation
-        env.set_group_linear_vel('pointer', linear_vel)
-        env.set_group_angular_vel('pointer', angular_vel)
+        g_env.set_group_linear_vel('pointer', linear_vel)
+        g_env.set_group_angular_vel('pointer', angular_vel)
 
         # Step through the world by 1 time frame
-        env.step()
+        g_env.step()
 
         # Determine the difference in virtual vs actual time
         t_warped = dt - (time.time() - t_start)
@@ -147,17 +224,42 @@ def event_loop(env, omni, kinematics, viewer):
     return
 
 
-def clean_up(env, omni, kinematics, viewer):
+def write_data(outfile):
+    """Write Data
+
+    Writes all data written to the global g_tooltip_data into the specified
+    output file in a pickled format.
+
+    Globals:
+        g_tooltip_data: An array of data from each simulation time step.
+    """
+    with open(outfile, 'w+') as f:
+        cPickle.dump(g_tooltip_data, f)
+
+    return
+
+
+def clean_up():
+    """Clean Up
+
+    Attempts to shut down any active engines and kills off spawned processes
+    and class objects.
+
+    Globals
+        g_omni: The Phantom Omni controller interface class object.
+        g_viewer: The OpenGL viewer interface class object.
+    """
     # Kill the ODE environment objects
+    # TODO: Make this a function of g_env. (ex: g_env.stop())
     ode.CloseODE()
 
     # Kill the controller process
-    if omni is not None:
-        omni.disconnect()
+    if g_omni is not None:
+        g_omni.disconnect()
 
     # Kill the viewer process
-    if viewer is not None:
-        viewer.stop()
+    if g_viewer is not None:
+        g_viewer.stop()
 
     return
 

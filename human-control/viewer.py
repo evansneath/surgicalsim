@@ -14,17 +14,36 @@ class ViewerInterface(object):
 
     Methods:
         start: Start the viewer process.
+        update: Updates the interface with useful viewer information.
         stop: Terminate the viewer process.
     """
-    def __init__(self, server_ip='127.0.0.1', viewer_ip='127.0.0.1',
-            port='21590', buffer='16384'):
+    def __init__(
+            self, server_ip='127.0.0.1', viewer_ip='127.0.0.1',
+            port='21590', buffer='16384', verbose=False):
         """Initialize
 
         Initializes the ViewerInterface class with all class attributes.
         """
         super(ViewerInterface, self).__init__()
 
+        # Define an attribute to hold the spawned Viewer processs
         self._process = None
+
+        return
+
+
+    def update(self):
+        """Update Viewer Interface
+
+        Updates the interface with useful information about the viewer
+        status and control signals passed back from the viewer.
+        """
+        # Poll the process. This updates the return code
+        self._process.poll()
+
+        if self._process.returncode is None:
+            # TODO: The process is dead. Let the main loop know
+            pass
 
         return
 
@@ -36,6 +55,9 @@ class ViewerInterface(object):
         at a time.
         """
         if self._process is None:
+            # TODO: When the process is spawned, send over all arguments
+            # passed into the interface object
+
             # Launch this own file's main function in a new process
             self._process = subprocess.Popen(['./viewer.py'])
 
@@ -48,25 +70,25 @@ class ViewerInterface(object):
         Terminates the viewer process if it was started.
         """
         if self._process is not None:
-            # Kill the spawned process
+            # Kill the viewer process
             self._process.terminate()
 
         return
 
 
 class Viewer(ODEViewer):
-    def __init__(self, server_ip='127.0.0.1', viewer_ip='127.0.0.1',
-            port='21590', buffer='16384', verbose=False):
+    def __init__(
+            self, server_ip='127.0.0.1', viewer_ip='127.0.0.1',
+            port='21590', buffer='16384',
+            verbose=False):
         """Initialization
 
         Initializes attributes for the base class of ODEViewer as well as new
         attributes defined for HumanControlViewer class.
 
         Attributes:
-            paused_obj: The shared value object to determine if the viewer is
-                paused.
-            stopped_obj: The shared value object to determine if the viewer is
-                stopped.
+            paused: A boolean value to determine if the viewer is paused.
+            stopped: A boolean value to determine if the viewer is stopped.
             server_ip: The IP address of the server to recieve messages.
             viewer_ip: The IP address of the HumanControlViewer class.
             port: The port to carry out communication.
@@ -80,6 +102,9 @@ class Viewer(ODEViewer):
             verbose=verbose,
             window_name='Surgical-Sim'
         )
+
+        self.paused = False
+        self.stopped = False
 
         return
 

@@ -229,7 +229,7 @@ class PhantomOmniInterface(object):
         return self._cur_pos
 
 
-    def _get_angle(self):
+    def get_angle(self):
         """Get Angle
 
         Returns the current angle of the Phantom Omni controller in radians.
