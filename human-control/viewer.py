@@ -1,5 +1,21 @@
 #!/usr/bin/env python
 
+"""Viewer module
+
+Contains classes to launch the OpenGL Surgical Sim viewer application.
+
+Author:
+    Evan Sneath - evansneath@gmail.com
+
+License:
+    Open Software License v3.0
+
+Classes:
+    ViewerInterface: Provides an interface for launching and communication with
+        the OpenGL viewer application.
+    Viewer: A customized viewer class for the Surgical Sim application.
+"""
+
 import sys
 import subprocess
 
@@ -23,6 +39,13 @@ class ViewerInterface(object):
         """Initialize
 
         Initializes the ViewerInterface class with all class attributes.
+
+        Arguments:
+            server_ip: The IP address of the server to recieve messages.
+            viewer_ip: The IP address of the HumanControlViewer class.
+            port: The port to carry out communication.
+            buffer: The message buffer size.
+            verbose: Determines if extra debug messages are printed.
         """
         super(ViewerInterface, self).__init__()
 
@@ -77,6 +100,17 @@ class ViewerInterface(object):
 
 
 class Viewer(ODEViewer):
+    """Viewer class
+
+    A customized ODEViewer class for the Surgical Sim application.
+
+    Inherits:
+        ODEViewer: The PyBrain OpenGL-based viewer for the ODE engine.
+
+    Attributes:
+        paused: A boolean value to determine if the viewer is paused.
+        stopped: A boolean value to determine if the viewer is stopped.
+    """
     def __init__(
             self, server_ip='127.0.0.1', viewer_ip='127.0.0.1',
             port='21590', buffer='16384',
@@ -86,13 +120,12 @@ class Viewer(ODEViewer):
         Initializes attributes for the base class of ODEViewer as well as new
         attributes defined for HumanControlViewer class.
 
-        Attributes:
-            paused: A boolean value to determine if the viewer is paused.
-            stopped: A boolean value to determine if the viewer is stopped.
+        Arguments:
             server_ip: The IP address of the server to recieve messages.
             viewer_ip: The IP address of the HumanControlViewer class.
             port: The port to carry out communication.
             buffer: The message buffer size.
+            verbose: Determines if extra debug messages are printed.
         """
         super(Viewer, self).__init__(
             servIP=server_ip,

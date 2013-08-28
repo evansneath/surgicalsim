@@ -1,7 +1,23 @@
 #!/usr/bin/env python
 
+"""Environment module
+
+Defines the environment for the Surgical Sim test article simulation.
+
+Author:
+    Evan Sneath
+
+License:
+    Open Software License v3.0
+
+Classes:
+    HumanControlEnvironment: Defines the Open Dynamics Engine environment for
+        the test article simulation given the XODE model filename.
+"""
+
 import numpy as np
 from pybrain.rl.environments.ode import ODEEnvironment, actuators
+
 
 class HumanControlEnvironment(ODEEnvironment):
     """HumanControlEnvironment class
@@ -10,19 +26,64 @@ class HumanControlEnvironment(ODEEnvironment):
     for the human data capture simulation.
 
     Inherits:
-        ODEEnvironment
+        ODEEnvironment: The PyBrain ODE environment class.
+
+    Attributes:
+        groups: A dictionary of group names where each value is a list of
+            body names associated with that group.
 
     Methods:
         set_dt: Set the time difference between steps. This also determines
             the amount of time that the torque is applied.
-        set_torques: Set all 7 torques for actuation on the next step.
+        set_torques: Set the torques applied to actuators for one time step.
+        set_group_pos: Sets the position of a group of bodies.
+        set_group_linear_vel: Sets the linear velocity of a group of bodies.
+        set_group_angular_vel: Sets the angular velocity of a group of bodies.
+        get_body_by_name: Returns the ODE body object given a body name.
+        get_body_pos: Returns the position of a body given a body name.
+        set_body_pos: Sets the position of a body given a body name.
+        get_body_linear_vel: Returns the velocity of a body given a body name.
+        set_body_linear_vel: Sets the velocity of a body given a body name.
+        get_body_angular_vel: Returns the angular velocity of a body given a
+            body name.
+        set_body_angular_vel: Sets the angular velocity of a body given a
+            body name.
         step: Step the world by 'dt' seconds.
     """
-    def __init__(self, xode_filename, renderer=True, realtime=True,
-            ip='127.0.0.1', port='21590', buf='16384', gravity=0.0):
+    def __init__(self, xode_filename, render=True, realtime=True,
+            ip='127.0.0.1', port='21590', buffer='16384', verbose=False,
+            gravity=-9.81):
+
+        """Initialize
+
+        Initializes the ODE world, variables, the frame rate and the 
+        callback functions.
+
+        Arguments:
+            render: Determines if object information should be sent over UDP
+                to the viewer client. (Boolean - Default: True)
+            realtime: Determines if the simulation should have real-time
+                constraints. (Boolean - Default: True)
+            ip: The IP address of the viewer client. This is only used if
+                render is set to True. (String - Default: '127.0.0.1')
+            port: The port of the viewer client. This is only used if
+                render is set to True. (String - Default: '21590')
+            buf: The size of the UDP buffer. This is only used if render is
+                set to True. (String - Default: '16384')
+            verbose: Determines if extra debug information should be
+                displayed. (Boolean - Default: False)
+            gravity: The gravity in meters per second to be excerted on objects
+                in the world. (Float - Default: -9.81)
+        """
         # Initialize the superclass object
         super(HumanControlEnvironment, self).__init__(
-            renderer, realtime, ip, port, buf, gravity
+                render=render,
+                realtime=realtime,
+                ip=ip,
+                port=port,
+                buf=buffer,
+                gravity=gravity,
+                verbose=verbose
         )
 
         # Load XODE file (This is generated prior to env initialization)
@@ -47,33 +108,6 @@ class HumanControlEnvironment(ODEEnvironment):
         for (body, _) in self.body_geom:
             if body is not None:
                 self.init_body_positions[body.name] = self.get_body_pos(body.name)
-
-        return
-
-
-    def set_group_pos(self, group_name, pos):
-        for body_name in self.groups[group_name]:
-            new_pos = (np.array(self.init_body_positions[body_name]) +
-                    np.array(pos))
-
-            self.set_body_pos(body_name, new_pos)
-
-        return
-
-
-    def set_group_linear_vel(self, group_name, vel):
-        for body_name in self.groups[group_name]:
-            new_vel = np.array(vel)
-            self.set_body_linear_vel(body_name, new_vel)
-
-        return
-
-    
-    def set_group_angular_vel(self, group_name, vel):
-        for body_name in self.groups[group_name]:
-            new_vel = np.array(vel)
-
-            self.set_body_angular_vel(body_name, tuple(new_vel))
 
         return
 
@@ -118,6 +152,61 @@ class HumanControlEnvironment(ODEEnvironment):
         # ODEEnvironments superclass
         for i, actuator in enumerate(self.actuators):
             a._update(self.torques[i])
+
+        return
+
+
+    def set_group_pos(self, group_name, pos):
+        """Set Group Position
+
+        Sets the position of the body group given a group name. Note that is
+        much better in the Open Dynamics Engine to move bodies using velocites.
+
+        Arguments:
+            group_name: The string value name of the group.
+            pos: The 3-element array [x, y, z] of the new position for the
+                group in [m].
+        """
+        for body_name in self.groups[group_name]:
+            new_pos = (np.array(self.init_body_positions[body_name]) +
+                    np.array(pos))
+
+            self.set_body_pos(body_name, new_pos)
+
+        return
+
+
+    def set_group_linear_vel(self, group_name, vel):
+        """Set Group Linear Velocity
+
+        Sets the linear velocity of the body group given a group name.
+
+        Arguments:
+            group_name: The string value name of the group.
+            vel: The 3-element array [x, y, z] of the new linear velocity
+                for the group in [m/s].
+        """
+        for body_name in self.groups[group_name]:
+            new_vel = np.array(vel)
+            self.set_body_linear_vel(body_name, new_vel)
+
+        return
+
+    
+    def set_group_angular_vel(self, group_name, vel):
+        """Set Group Angular Velocity
+
+        Sets the angular velocity  of the body group given a group name.
+
+        Arguments:
+            group_name: The string value name of the group.
+            vel: The 3-element array [x, y, z] of the new angular velocity
+                for the group in [rad/s].
+        """
+        for body_name in self.groups[group_name]:
+            new_vel = np.array(vel)
+
+            self.set_body_angular_vel(body_name, tuple(new_vel))
 
         return
 

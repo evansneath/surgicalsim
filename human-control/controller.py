@@ -1,5 +1,21 @@
 #!/usr/bin/env python
 
+"""Controller module
+
+Contains classes required for communication with the Phantom Omni controller.
+
+Author:
+    Evan Sneath - evansneath@gmail.com
+
+License:
+    Open Software License v3.0
+
+Classes:
+    PhantomOmniData: Parses and holds a single packet of Omni controller data.
+    PhantomOmniInterface: Provides an interface for Omni communications.
+    PhantomOmniThread: A communication thread for controller status updating.
+"""
+
 import array
 import time
 import socket
@@ -7,34 +23,47 @@ import struct
 import numpy as np
 import multiprocessing
 
-G_OMNI_MSG_FMT = '!iiddddddd'
+
+_G_OMNI_MSG_FMT = '!iiddddddd'
 
 
-class PhantomOmniData(dict):
+class PhantomOmniData(object):
     """PhantomOmniData class
 
-    Inherits dictionary class in order to provide an effective way to parse
-    raw data sent from the Phantom Omni controller over TCP and store that
-    data in an easy-to-use dictionary format.
+    Provides an effective way to parse raw data sent from the Phantom Omni
+    controller and retain that data.
 
-    Inherits:
-        dict: Standard library dictionary class.
+    Attributes:
+        docked: Determines if the Omni controller is docked. (Boolean)
+        button1: Determines if button 1 is pressed. (Boolean)
+        button2: Determines if button 2 is pressed. (Boolean)
+        position: The position of the Omni tooltip. (3d numpy array)
+        angle: The angle of the Omni tooltip. (3d numpy array)
+        dt: The current change in time between messages from the Omni.
 
     Methods:
-        parse: Parses and stores raw data from a TCP transfer as a dictionary.
+        parse: Parses raw Phantom Omni data and stores the formatted data.
     """
-    BUTTON_1 = 1
-    BUTTON_2 = 2
+    _BUTTON_1_VAL = 1
+    _BUTTON_2_VAL = 2
 
     def __init__(self, raw_data=None):
+        """Initialize
+
+        Creates a new PhantomOmniData object with zeroed out data.
+
+        Arguments:
+            raw_data: If raw_data is not None, the string given will be
+                parsed by the class parse() method.
+        """
         super(PhantomOmniData, self).__init__()
 
-        self['docked'] = False
-        self['button1'] = False
-        self['button2'] = False
-        self['position'] = np.array([0.0, 0.0, 0.0])
-        self['angle'] = np.array([0.0, 0.0, 0.0])
-        self['dt'] = 0.0
+        self.docked = False
+        self.button1 = False
+        self.button2 = False
+        self.position = np.array([0.0, 0.0, 0.0])
+        self.angle = np.array([0.0, 0.0, 0.0])
+        self.dt = 0.0
 
         if raw_data is not None:
             self.parse(raw_data)
@@ -43,43 +72,84 @@ class PhantomOmniData(dict):
 
 
     def parse(self, raw_data):
-        global G_OMNI_MSG_FMT
+        """Parse Phantom Omni Data
+
+        Parses Phantom Omni data sent over a network in packed stuct form
+        and populates the PhantomOmniData attributes with the unpacked,
+        formatted data.
+
+        Globals:
+            _G_OMNI_MSG_FMT: The Phantom Omni data message format.
+
+        Arguments:
+            raw_data: Raw, upacked data received from the Phantom Omni.
+        """
+        global _G_OMNI_MSG_FMT
 
         # Unpack the byte data with struct module
-        unpacked_data = struct.unpack(G_OMNI_MSG_FMT, raw_data)
+        unpacked_data = struct.unpack(_G_OMNI_MSG_FMT, raw_data)
 
-        # Load all of the unpacked data into dictionary items for easy lookup
-        self['docked'] = unpacked_data[0] == True
-        self['button1'] = unpacked_data[1] & self.BUTTON_1
-        self['button2'] = unpacked_data[1] & self.BUTTON_2
-        self['position'] = np.array([
+        # Load all of the unpacked data into class attributes for easy lookup
+        self.docked = unpacked_data[0] == True
+
+        self.button1 = unpacked_data[1] & self._BUTTON_1_VAL
+        self.button2 = unpacked_data[1] & self._BUTTON_2_VAL
+
+        self.position = np.array([
             unpacked_data[2],
             unpacked_data[3],
             unpacked_data[4]
         ])
-        self['angle'] = np.array([
+
+        self.angle = np.array([
             unpacked_data[5],
             unpacked_data[6],
             unpacked_data[7]
         ])
-        self['dt'] = unpacked_data[8]
+
+        self.dt = unpacked_data[8]
 
         return
 
 
 class PhantomOmniInterface(object):
-    """HumanControlDevice
+    """PhantomOmniInterface class
 
     Gets positional and pointing vector information from the Phantom Omni
-    6-DOF controller. This controller data is then used to control the
-    robotic simulation enviroment of the Mitsubishi PA10 robotic arm.
+    6-DOF controller.
+
+    Methods:
+        set_dt: Sets the change of time between timesteps.
+        connect: Starts the communication thread and connects to TCP socket.
+        disconnect: Kills the communication thread.
+        update: Updates all positional and angular data from the latest
+            Phantom Omni controller information.
+        get_linear_vel: Returns the most recently updated linear velocity as
+            a 3-element numpy array [x, y, z] in [m/s].
+        get_angular_vel: Returns the most recently updated angular velocity as
+            a 3-element numpy array [x, y, z] in [rad/s].
+        get_pos: Returns the most recently updated controller position as a
+            3-element numpy array [x, y, z] in [m].
+        get_angle: Returns the most recently updated controller angles as a
+            3-element numpy array [x, y, z] in [rad].
     """
     def __init__(self, dt=0.01):
+        """Initialize
+
+        Creates a new PhantomOmniInterface object.
+
+        Globals:
+            _G_OMNI_MSG_FMT: The Phantom Omni data message format.
+
+        Arguments:
+            dt: The difference in time between timesteps used to calculate
+                linear and angular velocity.
+        """
         super(PhantomOmniInterface, self).__init__()
 
         # Create a shared array of the length of one message. This will be
         # used to store the most current data from the Phantom Omni controller
-        data_len = struct.calcsize(G_OMNI_MSG_FMT)
+        data_len = struct.calcsize(_G_OMNI_MSG_FMT)
 
         # NOTE: Type 'b' = byte (actually signed char). data_len = array size
         self._cur_data = multiprocessing.Array('b', data_len, lock=True)
@@ -180,14 +250,14 @@ class PhantomOmniInterface(object):
 
         # Get the new tooltip position from the device
         self._prev_pos = self._cur_pos.copy()
-        self._cur_pos = parsed_data['position']
+        self._cur_pos = parsed_data.position
 
         # Calculate the change in linear velocity
         self._cur_linear_vel = (self._cur_pos - self._prev_pos) / self._dt
 
         # Get the new tooltip angle from the device
         self._prev_angle = self._cur_angle.copy()
-        self._cur_angle = parsed_data['angle']
+        self._cur_angle = parsed_data.angle
 
         self._cur_angular_vel = (self._cur_angle - self._prev_angle) / self._dt
 
@@ -201,7 +271,7 @@ class PhantomOmniInterface(object):
         in meters per second.
 
         Returns:
-            1x3 numpy array of (x, y, z) velocities in m/s.
+            3-element numpy array of [x, y, z] velocities in [m/s].
         """
         return self._cur_linear_vel
 
@@ -213,7 +283,7 @@ class PhantomOmniInterface(object):
         in radians per second.
 
         Returns:
-            1x3 numpy array of (x, y, z) angular velocities in rad/s.
+            3-element numpy array of [x, y, z] angular velocities in [rad/s].
         """
         return self._cur_angular_vel
 
@@ -224,7 +294,7 @@ class PhantomOmniInterface(object):
         Returns the current position of the Phantom Omni controller in meters.
 
         Returns:
-            1x3 numpy array of (x, y, z) positions in m.
+            3-element numpy array of [x, y, z] positions in [m].
         """
         return self._cur_pos
 
@@ -235,14 +305,26 @@ class PhantomOmniInterface(object):
         Returns the current angle of the Phantom Omni controller in radians.
 
         Returns:
-            1x3 numpy array of (x, y, z) angles in rad.
+            3-element numpy array of [x, y, z] angles in [rad].
         """
         return self._cur_angle
 
 
 class PhantomOmniThread(multiprocessing.Process):
+    """PhantomOmniThread class
+
+    An object to continuously poll the Phantom Omni incoming connection for
+    the latest data. The newest data is stored in a shared array accessible
+    by the parent object.
+
+    Inherits:
+        multiprocessing.Process: A concurrent process forked on start().
+
+    Methods:
+        start: Starts the execution of the run() method in a new thread.
+    """
     def __init__(self, tcp_ip, tcp_port, is_connected, shared_array):
-        """Initialization
+        """Initialize
 
         Initializes the superclass of multiprocess.Process and attributes
         necessary for determining position, rotation, and velocities.

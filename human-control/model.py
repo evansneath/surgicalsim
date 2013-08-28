@@ -1,24 +1,70 @@
 #!/usr/bin/env python
 
+"""Model module
+
+Contains the classes necessary for XODE file generation specific to the
+Surgical Sim test article training simulation.
+
+Author:
+    Evan Sneath - evansneath@gmail.com
+
+License:
+    Open Software License v3.0
+
+Classes:
+    HumanControlModel: Builds all objects used for the test article simulation.
+"""
+
 from pybrain.rl.environments.ode.tools.xodetools import XODEfile
 import numpy as np
 
 
 class HumanControlModel(XODEfile):
-    def __init__(self, name, randomize_test_article=False, **kwargs):
-        super(HumanControlModel, self).__init__(name, **kwargs)
+    """HumanControlModel class
 
-        self.insertFloor(y=0.0)
+    Generates the XODE file used for the ODE environment.
 
-        y_top_table = self.build_test_article(randomize_test_article)
-        self.build_end_effector(y_top_table)
+    Inherits:
+        XODEfile: An xode file building class.
 
-        self.affixToEnvironment('table')
-       
+    Methods:
+        generate: Generates the xode model of the world.
+    """
+    def __init__(self, name, randomize_test_article=False):
+        """Initialize
+
+        Creates a new HumanControlModel object.
+
+        Arguments:
+            randomize_test_article: Determines if the test article to be
+                generated will have randomized gates. (Default: False)
+        """
+        super(HumanControlModel, self).__init__(name)
+
+        self._name = name
+        self._randomize_test_article = randomize_test_article
+
         return
 
 
-    def build_end_effector(self, y_top_table):
+    def generate(self):
+        """Generate
+
+        Generates the xode model of the world.
+        """
+        self.insertFloor(y=0.0)
+
+        y_top_table = self._build_test_article(self._randomize_test_article)
+        self._build_end_effector(y_top_table)
+
+        self.affixToEnvironment('table')
+
+        self.writeXODE('./'+self._name)
+
+        return
+ 
+
+    def _build_end_effector(self, y_top_table):
         """Build End Effector
 
         Arguments:
@@ -36,8 +82,9 @@ class HumanControlModel(XODEfile):
         eul_tooltip = np.array([0.0, 0.0, 0.0])
 
         self.insertBody(bname='tooltip', shape='sphere', size=siz_tooltip,
-                density=0.0, pos=pos_tooltip, passSet=['end_effector', 'test'],
-                euler=eul_tooltip, mass=m_tooltip, color=(255, 0, 0, 255))
+                density=0.0, pos=pos_tooltip, passSet=['end_effector'],
+                euler=eul_tooltip, mass=m_tooltip, color=(255, 0, 0, 255),
+                has_gravity=False)
 
         # Define the stick properties
         m_stick = 1.0 # [kg]
@@ -49,16 +96,24 @@ class HumanControlModel(XODEfile):
         eul_stick = np.array([90.0, 0.0, 0.0])
 
         self.insertBody(bname='stick', shape='cylinder', size=siz_stick,
-                density=0.0, pos=pos_stick, passSet=['end_effector', 'test'],
-                euler=eul_stick, mass=m_stick)
+                density=0.0, pos=pos_stick, passSet=['end_effector'],
+                euler=eul_stick, mass=m_stick, has_gravity=False)
 
         self.insertJoint('stick', 'tooltip', type='fixed')
 
         return
 
 
-    def build_test_article(self, randomize=True):
-        y_pos_test_article = 0.001
+    def _build_test_article(self, randomize=True):
+        """Build Test Article
+
+        Generates the test article used for training.
+
+        Arguments:
+            randomize: Determines if the gates of the test article should be
+                randomized with position, height, and angle. (Default: True)
+        """
+        y_pos_test_article = 0.01
 
         m_table = 1.0 # [kg]
 
@@ -81,7 +136,7 @@ class HumanControlModel(XODEfile):
 
         # Build the table
         self.insertBody(bname='table', shape='box', size=siz_table,
-                density=0.0, pos=pos_table, passSet=['test'],
+                density=0.0, pos=pos_table, passSet=[],
                 euler=eul_table, mass=m_table, color=(0.1, 0.1, 0.1, 0.6))
 
         # Define the normalized gate height for each gate [y]
@@ -149,14 +204,26 @@ class HumanControlModel(XODEfile):
 
         # Generate the gates at these positions
         for i in range(8):#range(8):
-            self.build_gate(i, y_top_table, gate_height[i], gate_pos[i], gate_rot[i])
+            self._build_gate(i, y_top_table, gate_height[i], gate_pos[i], gate_rot[i])
 
         return y_top_table
 
 
-    def build_gate(self, num, top_table, gate_height, gate_pos, gate_rot):
+    def _build_gate(self, num, top_table, gate_height, gate_pos, gate_rot):
+        """Build Gate
+
+        Arguments:
+            num: The gate number to be appended to the name.
+            top_table: The top of the table y position in [m].
+            gate_height: The height of the gate to generate in [m].
+            gate_pos: The 2-element numpy array of the [x, z] position of the
+                gate to generate in [m].
+            gate_rot: The rotation of the gate in [rad].
+        """
         # Define the width of the gate entry point
         gate_width = 0.04
+
+        top_table += 0.0001
 
         gate_full_pos = np.array([
             gate_pos[0],
@@ -189,7 +256,7 @@ class HumanControlModel(XODEfile):
 
         self.insertBody(bname=marker1_name, shape='sphere',
                 size=marker_size, density=0.0, pos=marker1_pos,
-                passSet=['test'], euler=marker_eul, mass=marker_mass,
+                passSet=['test_article'], euler=marker_eul, mass=marker_mass,
                 color=(255, 255, 255, 255)
         )
 
@@ -198,7 +265,7 @@ class HumanControlModel(XODEfile):
 
         self.insertBody(bname=marker2_name, shape='sphere',
                 size=marker_size, density=0.0, pos=marker2_pos,
-                passSet=['test'], euler=marker_eul, mass=marker_mass,
+                passSet=['test_article'], euler=marker_eul, mass=marker_mass,
                 color=(255, 255, 255, 255)
         )
 
@@ -216,7 +283,7 @@ class HumanControlModel(XODEfile):
 
         self.insertBody(bname=stand1_name, shape='cylinder',
                 size=stand_size, density=0.0, pos=stand1_pos,
-                passSet=['test'], euler=stand_eul, mass=stand_mass
+                passSet=['test_article'], euler=stand_eul, mass=stand_mass
         )
 
         stand2_name = gate_name + '_stand2'
@@ -224,7 +291,7 @@ class HumanControlModel(XODEfile):
 
         self.insertBody(bname=stand2_name, shape='cylinder',
                 size=stand_size, density=0.0, pos=stand2_pos,
-                passSet=['test'], euler=stand_eul, mass=stand_mass
+                passSet=['test_article'], euler=stand_eul, mass=stand_mass
         )
 
         # Build the cross support
@@ -244,7 +311,7 @@ class HumanControlModel(XODEfile):
 
         self.insertBody(bname=support_name, shape='box',
                 size=support_size, density=0.0, pos=support_pos,
-                passSet=['test'], euler=support_eul, mass=support_mass
+                passSet=['test_article'], euler=support_eul, mass=support_mass
         )
 
         # Build the base for the gate
@@ -266,101 +333,20 @@ class HumanControlModel(XODEfile):
 
         self.insertBody(bname=base_name, shape='cylinder',
                 size=base_size, density=0.0, pos=base_pos,
-                passSet=['test'], euler=base_eul, mass=base_mass
+                passSet=['test_article'], euler=base_eul, mass=base_mass
         )
 
+        # Create fixed joints between all parts of the gate. This makes it
+        # a single body
         self.insertJoint(base_name, 'table', type='fixed')
+        self.insertJoint(support_name, base_name, type='fixed')
+        self.insertJoint(stand1_name, support_name, type='fixed')
+        self.insertJoint(stand2_name, support_name, type='fixed')
+        self.insertJoint(marker1_name, stand1_name, type='fixed')
+        self.insertJoint(marker2_name, stand2_name, type='fixed')
 
         return
 
 
-class TestArmModel(XODEfile):
-    def __init__(self, name, **kwargs):
-        super(TestArmModel, self).__init__(name, **kwargs)
-
-        # Define an x position indicator
-        mx = 1.0
-        x_siz = [1.0, 0.1, 0.1]
-        x_pos = [0.5, 0.1/2.0, 0.0]
-        x_eul = [0.0, 0.0, 0.0]
-
-        # Add body objects to the XODE file
-        self.insertBody(bname='x_ptr', shape='box', size=x_siz, density=0.0,
-                pos=x_pos, passSet=['arm'], euler=x_eul, mass=mx)
-
-        # Define base
-        m0 = 1.0 # [kg]
-        l0 = 0.5 # [m]
-        lc0 = l0 / 2.0 # [m]
-        omega0 = 0.0
-
-        l0_siz = np.array([0.1, l0])
-        l0_pos = np.array([0.0, lc0, 0.0])
-        l0_eul = np.array([90.0, 0.0, omega0])
-
-        l0_end_pos = np.array([0.0, l0, 0.0])
-
-        # Define link 1
-        m1 = 1.0 # [kg]
-        l1 = 1.0 # [m]
-        lc1 = l1 / 2.0 # [m]
-        omega1 = 45.0 # [deg]
-
-        l1_siz = np.array([0.1, l1])
-        l1_pos = np.array([
-            l0_end_pos[0]+lc1*np.cos(np.radians(omega1)),
-            l0_end_pos[1]+lc1*np.sin(np.radians(omega1)),
-            0.0
-        ])
-        l1_eul = l0_eul + np.array([0.0, 0.0, omega1])
-
-        l1_end_pos = l0_end_pos + np.array([
-            l1*np.cos(np.radians(omega1)),
-            l1*np.sin(np.radians(omega1)),
-            0.0
-        ])
-
-        # Define link 2
-        m2 = 1.0 # [kg]
-        l2 = 1.0 # [m]
-        lc2 = l2 / 2.0 # [m]
-        omega2 = 20.0 # [deg]
-
-        l2_siz = np.array([0.1, l2])
-        l2_pos = l1_end_pos + np.array([
-                lc2*np.cos(np.radians(omega2)),
-                lc2*np.sin(np.radians(omega2)),
-                0.0
-        ])
-        l2_eul = l1_eul + np.array([0.0, 0.0, omega2]) 
-
-        l2_end_pos = l1_end_pos + np.array([
-                l2*np.cos(np.radians(omega2)),
-                l2*np.sin(np.radians(omega2)),
-                0.0
-        ]) 
-        # Add body objects to the XODE file
-        self.insertBody(bname='l0', shape='cylinder', size=l0_siz, density=0.0,
-                pos=l0_pos, passSet=['arm'], euler=l0_eul, mass=m0)
-
-        self.insertBody(bname='l1', shape='cylinder', size=l1_siz, density=0.0,
-                pos=l1_pos, passSet=['arm'], euler=l1_eul, mass=m1)
-
-        self.insertBody(bname='l2', shape='cylinder', size=l2_siz, density=0.0,
-                pos=l2_pos, passSet=['arm'], euler=l2_eul, mass=m2)
-
-        # Define joints between links in the XODE file
-        self.insertJoint('l0', 'l1', type='hinge',
-                axis={'x':0, 'y':0, 'z':1}, anchor=tuple(l0_end_pos))
-
-        self.insertJoint('l1', 'l2', type='hinge',
-                axis={'x':0, 'y':0, 'z':1}, anchor=tuple(l1_end_pos))
-
-        # Fix the base to the environment
-        self.affixToEnvironment('l0')
-
-        # Insert the floor position and center the camera
-        self.insertFloor(y=0.0)
-        self.centerOn('l1')
-
-        return
+if __name__ == '__main__':
+    pass

@@ -1,9 +1,24 @@
 #!/usr/bin/env python
 
+"""Run module
+
+Acts as the main event loop and command line interface for the Surgical Sim
+test article training simulator.
+
+Author:
+    Evan Sneath - evansneath@gmail.com
+
+License:
+    Open Software License v3.0
+
+Functions:
+    parse_arguments: Parses incoming command line arguments.
+    main: Initializes all objects and begins the main event loop.
+"""
+
 # Import all external modules
 import argparse
 import os
-import ode
 import numpy as np
 import time
 import cPickle
@@ -35,19 +50,19 @@ def main():
     try:
         # Initialize all module of the simulation
         print '>>> Initializing...'
-        init(args)
+        _init(args)
 
         # Continue to execute the main simulation loop
         print '>>> Running... (ctrl+c to exit)'
-        event_loop()
+        _event_loop()
     except KeyboardInterrupt as e:
         # Except the keyboard interrupt as the valid way of leaving the event
         # loop for now
         print '\n>>> Writing captured data'
-        write_data(args.outfile)
+        _write_data(args.outfile)
 
         print '>>> Cleaning up...'
-        clean_up()
+        _clean_up()
 
         print '>>> Exiting'
 
@@ -86,7 +101,7 @@ def parse_arguments():
     return args
 
 
-def init(args):
+def _init(args):
     """Initialize Human Control Simulation
 
     Creates the environment, viewer, and (Phantom Omni) controller objects
@@ -97,6 +112,9 @@ def init(args):
         g_omni: The Phantom Omni controller interface class object.
         g_kinematics: The PA10 kinematic simulator class object.
         g_viewer: The OpenGL viewer interface class object.
+
+    Arguments:
+        args: An argparse object containing all valid command line arguments.
     """
     global g_env
     global g_omni
@@ -111,12 +129,18 @@ def init(args):
         os.remove('./'+xode_filename+'.xode')
 
     xode_model = HumanControlModel(
-            xode_filename, randomize_test_article=args.randomize)
-    xode_model.writeXODE('./'+xode_filename)
+            name=xode_filename,
+            randomize_test_article=args.randomize
+    )
+    xode_model.generate()
 
     # Start environment
     print '>>> Starting environment'
-    g_env = HumanControlEnvironment('./'+xode_filename+'.xode', realtime=False)
+    g_env = HumanControlEnvironment(
+            xode_filename='./'+xode_filename+'.xode',
+            realtime=False,
+            verbose=args.verbose
+    )
 
     # Start viewer
     print '>>> Starting viewer'
@@ -143,7 +167,7 @@ def init(args):
     return
 
 
-def event_loop():
+def _event_loop():
     """Event Loop
 
     The main application loop where the simulation is stepped through every
@@ -224,7 +248,7 @@ def event_loop():
     return
 
 
-def write_data(outfile):
+def _write_data(outfile):
     """Write Data
 
     Writes all data written to the global g_tooltip_data into the specified
@@ -239,27 +263,28 @@ def write_data(outfile):
     return
 
 
-def clean_up():
+def _clean_up():
     """Clean Up
 
     Attempts to shut down any active engines and kills off spawned processes
     and class objects.
 
     Globals
-        g_omni: The Phantom Omni controller interface class object.
         g_viewer: The OpenGL viewer interface class object.
+        g_env: The ODE simulation environment class object.
+        g_omni: The Phantom Omni controller interface class object.
     """
+    # Kill the viewer process
+    if g_viewer is not None:
+        g_viewer.stop()
+
     # Kill the ODE environment objects
-    # TODO: Make this a function of g_env. (ex: g_env.stop())
-    ode.CloseODE()
+    if g_env is not None:
+        g_env.stop()
 
     # Kill the controller process
     if g_omni is not None:
         g_omni.disconnect()
-
-    # Kill the viewer process
-    if g_viewer is not None:
-        g_viewer.stop()
 
     return
 
