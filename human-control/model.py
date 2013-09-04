@@ -74,7 +74,7 @@ class HumanControlModel(XODEfile):
         y_pos_end_effector = y_top_table + 0.1
 
         # Define the tooltip properties
-        m_tooltip = 1.0 # [kg]
+        m_tooltip = 10.0 # [g]
         r_tooltip = 0.005 # [m]
 
         siz_tooltip = np.array([r_tooltip])
@@ -87,7 +87,7 @@ class HumanControlModel(XODEfile):
                 has_gravity=False)
 
         # Define the stick properties
-        m_stick = 1.0 # [kg]
+        m_stick = 10.0 # [g]
         l_stick = 0.05 # [m]
         r_stick = 0.0025 # [m]
 
@@ -113,9 +113,9 @@ class HumanControlModel(XODEfile):
             randomize: Determines if the gates of the test article should be
                 randomized with position, height, and angle. (Default: True)
         """
-        y_pos_test_article = 0.01
+        y_pos_test_article = 0.03
 
-        m_table = 1.0 # [kg]
+        m_table = 100.0 # [g]
 
         # Define the length of one side of the square table
         l_table = 0.4 # [m]
@@ -205,6 +205,7 @@ class HumanControlModel(XODEfile):
         # Generate the gates at these positions
         for i in range(8):#range(8):
             self._build_gate(i, y_top_table, gate_height[i], gate_pos[i], gate_rot[i])
+            pass
 
         return y_top_table
 
@@ -241,7 +242,7 @@ class HumanControlModel(XODEfile):
 
         marker_radius = 0.005
         marker_size = [marker_radius]
-        marker_mass = 0.01
+        marker_mass = 0.5
         marker_eul = np.array([0.0, 0.0, 0.0])
 
         marker_offset = rot_matrix * np.array([
@@ -275,7 +276,7 @@ class HumanControlModel(XODEfile):
             gate_width,
         ])
 
-        stand_mass = 0.02
+        stand_mass = 2.0
         stand_eul = np.array([90.0, 0.0, 0.0])
 
         stand1_name = gate_name + '_stand1'
@@ -296,7 +297,7 @@ class HumanControlModel(XODEfile):
 
         # Build the cross support
         support_name = gate_name + '_support'
-        support_mass = 0.02
+        support_mass = 2.0
 
         support_size = np.array([
             gate_width+(2.0*stand_size[0]),
@@ -316,7 +317,7 @@ class HumanControlModel(XODEfile):
 
         # Build the base for the gate
         base_name = gate_name + '_base'
-        base_mass = 0.03 # [kg]
+        base_mass = 3.0 # [g]
 
         base_size = np.array([
             0.005,
@@ -338,7 +339,7 @@ class HumanControlModel(XODEfile):
 
         # Create fixed joints between all parts of the gate. This makes it
         # a single body
-        self.insertJoint(base_name, 'table', type='fixed')
+        #self.insertJoint(base_name, 'table', type='fixed')
         self.insertJoint(support_name, base_name, type='fixed')
         self.insertJoint(stand1_name, support_name, type='fixed')
         self.insertJoint(stand2_name, support_name, type='fixed')
