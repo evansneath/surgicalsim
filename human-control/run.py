@@ -16,6 +16,10 @@ Functions:
     main: Initializes all objects and begins the main event loop.
 """
 
+
+# TODO: Move the methods here into a unified class
+
+
 # Import all external modules
 import argparse
 import os
@@ -30,43 +34,186 @@ from controller import PhantomOmniInterface
 from viewer import ViewerInterface
 
 
-# Define all global objects
-g_tooltip_data = []
+class Simulation(object):
+    """Simulation class
 
-g_env = None
-g_omni = None
-g_kinematics = None
-g_viewer = None
+    Responsible for initialization of all children objects such as the
+    Open Dynamics Engine environment, Phantom Omni controller, and OpenGL
+    viewer. Starts the main event loop with real-time constraints.
 
+    Attributes:
+        env: The Open Dynamics Engine environment.
+        omni: The Phantom Omni robotic controller connection.
+        viewer: The OpenGL viewer for the ODE environment.
+        saved_data: A list of tuples containing data from the simulation.
 
-def main():
-    """Main
-
-    The main driver function responsible for initializing, running the event
-    loop, and closing the application on exit.
+    Methods:
+        start: Begins the main event loop.
     """
-    args = parse_arguments()
-    
-    try:
-        # Initialize all module of the simulation
-        print '>>> Initializing...'
-        _init(args)
+    def __init__(self, randomize, network, verbose):
+        """Initialize
 
-        # Continue to execute the main simulation loop
-        print '>>> Running... (ctrl+c to exit)'
-        _event_loop()
-    except KeyboardInterrupt as e:
-        # Except the keyboard interrupt as the valid way of leaving the event
-        # loop for now
-        print '\n>>> Writing captured data'
-        _write_data(args.outfile)
+        Creates the environment, viewer, and (Phantom Omni) controller objects
+        required to run the human data capture simulation.
 
-        print '>>> Cleaning up...'
-        _clean_up()
+        Arguments:
+            randomize: Determines if the test article gates will be randomized.
+            network: Determines if the omni connection is local or networked.
+            verbose: Determines the level out debug output generated.
+        """
+        # Generate the XODE file
+        XODE_FILENAME = 'model' # .xode is appended automatically
 
-        print '>>> Exiting'
+        print '>>> Generating world model'
+        if os.path.exists('./'+XODE_FILENAME+'.xode'):
+            os.remove('./'+XODE_FILENAME+'.xode')
 
-    return
+        xode_model = HumanControlModel(
+                name=XODE_FILENAME,
+                randomize_test_article=randomize
+        )
+        xode_model.generate()
+
+        # Start environment
+        print '>>> Starting environment'
+        self.env = HumanControlEnvironment(
+                xode_filename='./'+XODE_FILENAME+'.xode',
+                realtime=False,
+                verbose=verbose
+        )
+
+        # Start viewer
+        print '>>> Starting viewer'
+        self.viewer = ViewerInterface(verbose=verbose)
+        self.viewer.start()
+
+        # Start controller
+        print '>>> Starting Phantom Omni interface'
+        self.omni = PhantomOmniInterface()
+
+        if network:
+            ip = raw_input('<<< Enter host ip: ')
+            port = int(raw_input('<<< Enter tcp port: '))
+        else:
+            ip = '127.0.0.1'
+            port = 5555
+
+        # Try to connect to the Phantom Omni controller
+        self.omni.connect(ip, port)
+
+        # Initialize the tooltip data list
+        self.saved_data = []
+
+        return
+
+    def start(self, fps=60):
+        """Start
+
+        Begin the continuous event loop for the simulation. This event loop
+        can be exited using the ctrl+c keyboard interrupt. Real-time
+        constraints are enforced.
+
+        Arguments:
+            fps: The value of frames per second of the simulation.
+        """
+        paused = False
+        stopped = False
+
+        # Define the simulation frame rate
+        dt = 1.0 / float(fps) # [s]
+
+        # Keep track of time overshoot in the case that simulation time must be
+        # increased in order to maintain real-time constraints
+        t_overshoot = 0.0
+
+        while not stopped:
+            t_start = time.time()
+
+            # If the last calculation took too long, catch up
+            dt_warped = dt + t_overshoot
+
+            self.env.set_dt(dt_warped)
+            self.omni.set_dt(dt_warped)
+
+            # TODO: Update the viewer with the latest control signals
+            #viewer.update()
+
+            if paused:
+                self.env.step(paused=True)
+                continue
+
+            # Populate the controller with the most up-to-date data
+            self.omni.update()
+
+            # Record the positional and angular tooltip data
+            data_pack = (self.omni.get_pos().tolist(),
+                         self.omni.get_angle().tolist())
+            self.saved_data.append(data_pack)
+
+            # Get the updated linear/angular velocities of the tooltip
+            linear_vel = self.omni.get_linear_vel()
+            angular_vel = self.omni.get_angular_vel()
+
+            # Set the linear and angular velocities of the simulation
+            self.env.set_group_linear_vel('pointer', linear_vel)
+            self.env.set_group_angular_vel('pointer', angular_vel)
+
+            # Step through the world by 1 time frame
+            self.env.step()
+
+            # Determine the difference in virtual vs actual time
+            t_warped = dt - (time.time() - t_start)
+
+            # Attempt to enforce real-time constraints
+            if t_warped >= 0.0:
+                # The calculation took less time than the virtual time. Sleep the
+                # rest off
+                time.sleep(t_warped)
+                t_overshoot = 0.0
+            else:
+                # The calculation took more time than the virtual time. We need to
+                # catch up with the virtual time on the next time step
+                t_overshoot = -t_warped
+
+        return
+
+    def write_data(self, outfile):
+        """Write Data
+
+        Writes all data written to the saved_data list into the specified
+        output file in a pickled format.
+
+        Arguments:
+            outfile: The relative or absolute path of the file to output the
+                pickled simulation data.
+        """
+        with open(outfile, 'w+') as f:
+            cPickle.dump(self.saved_data, f)
+
+        return
+
+    def __del__(self):
+        """Delete (del)
+
+        Attempts to shut down any active engines and kills off spawned
+        class objects.
+        """
+        # Kill the OpenGL viewer process
+        if self.viewer is not None:
+            self.viewer.stop()
+            del self.viewer
+
+        # Kill the ODE environment objects
+        if self.env is not None:
+            self.env.stop()
+            del self.env
+
+        # Kill the Phantom Omni controller process
+        if self.omni is not None:
+            self.omni.disconnect()
+            del self.omni
+
+        return
 
 
 def parse_arguments():
@@ -101,190 +248,34 @@ def parse_arguments():
     return args
 
 
-def _init(args):
-    """Initialize Human Control Simulation
+def main():
+    """Main
 
-    Creates the environment, viewer, and (Phantom Omni) controller objects
-    required to run the human data capture simulation.
-
-    Globals:
-        g_env: The ODE simulation environment class object.
-        g_omni: The Phantom Omni controller interface class object.
-        g_kinematics: The PA10 kinematic simulator class object.
-        g_viewer: The OpenGL viewer interface class object.
-
-    Arguments:
-        args: An argparse object containing all valid command line arguments.
+    The main driver function responsible for initializing, running the event
+    loop, and closing the application on exit.
     """
-    global g_env
-    global g_omni
-    global g_kinematics
-    global g_viewer
+    args = parse_arguments()
 
-    xode_filename = 'model'
+    sim = None
+    
+    try:
+        # Initialize all module of the simulation
+        print '>>> Initializing...'
+        sim = Simulation(args.randomize, args.network, args.verbose)
 
-    # Generate the XODE file
-    print '>>> Generating world model'
-    if os.path.exists('./'+xode_filename+'.xode'):
-        os.remove('./'+xode_filename+'.xode')
+        # Continue to execute the main simulation loop
+        print '>>> Running... (ctrl+c to exit)'
+        sim.start()
+    except KeyboardInterrupt as e:
+        # Except the keyboard interrupt as the valid way of leaving the event
+        # loop for now
+        print '\n>>> Writing captured data'
+        sim.write_data(args.outfile)
 
-    xode_model = HumanControlModel(
-            name=xode_filename,
-            randomize_test_article=args.randomize
-    )
-    xode_model.generate()
+        print '>>> Cleaning up...'
+        del sim
 
-    # Start environment
-    print '>>> Starting environment'
-    g_env = HumanControlEnvironment(
-            xode_filename='./'+xode_filename+'.xode',
-            realtime=False,
-            verbose=args.verbose
-    )
-
-    # Start viewer
-    print '>>> Starting viewer'
-    g_viewer = ViewerInterface(verbose=args.verbose)
-    g_viewer.start()
-
-    # Start controller
-    print '>>> Starting Phantom Omni interface'
-    g_omni = PhantomOmniInterface()
-
-    if args.network:
-        ip = raw_input('<<< Enter host ip: ')
-        port = int(raw_input('<<< Enter tcp port: '))
-    else:
-        ip = '127.0.0.1'
-        port = 5555
-
-    # Try to connect to the Phantom Omni controller
-    g_omni.connect(ip, port)
-
-    # Start kinematics engine
-    g_kinematics = None
-
-    return
-
-
-def _event_loop():
-    """Event Loop
-
-    The main application loop where the simulation is stepped through every
-    'dt' seconds. Real-time constraints are enforced by simulation time warp.
-
-    Globals:
-        g_env: The ODE simulation environment class object.
-        g_omni: The Phantom Omni controller interface class object.
-        g_kinematics: The PA10 kinematic simulator class object.
-        g_viewer: The OpenGL viewer interface class object.
-        g_tooltip_data: The tooltip data for each simulation time step.
-    """
-    global g_env
-    global g_omni
-    global g_kinematics
-    global g_viewer
-    global g_tooltip_data
-
-    paused = False
-    stopped = False
-
-    # Define the simulation frame rate
-    fps = 60.0 # [Hz]
-    dt = 1.0 / fps # [s]
-
-    # Keep track of time overshoot in the case that simulation time must be
-    # increased in order to maintain real-time constraints
-    t_overshoot = 0.0
-
-    while not stopped:
-        t_start = time.time()
-
-        # If the last calculation took too long, catch up
-        dt_warped = dt + t_overshoot
-
-        g_env.set_dt(dt_warped)
-        g_omni.set_dt(dt_warped)
-
-        # TODO: Update the viewer with the latest control signals
-        #viewer.update()
-
-        if paused:
-            g_env.step(paused=True)
-            continue
-
-        # Populate the controller with the most up-to-date data
-        g_omni.update()
-
-        # Record the positional and angular tooltip data
-        data_pack = (g_omni.get_pos().tolist(), g_omni.get_angle().tolist())
-        g_tooltip_data.append(data_pack)
-
-        # Get the updated linear/angular velocities of the tooltip
-        linear_vel = g_omni.get_linear_vel()
-        angular_vel = g_omni.get_angular_vel()
-
-        # Set the linear and angular velocities of the simulation
-        g_env.set_group_linear_vel('pointer', linear_vel)
-        g_env.set_group_angular_vel('pointer', angular_vel)
-
-        # Step through the world by 1 time frame
-        g_env.step()
-
-        # Determine the difference in virtual vs actual time
-        t_warped = dt - (time.time() - t_start)
-
-        # Attempt to enforce real-time constraints
-        if t_warped >= 0.0:
-            # The calculation took less time than the virtual time. Sleep the
-            # rest off
-            time.sleep(t_warped)
-            t_overshoot = 0.0
-        else:
-            # The calculation took more time than the virtual time. We need to
-            # catch up with the virtual time on the next time step
-            t_overshoot = -t_warped
-
-    return
-
-
-def _write_data(outfile):
-    """Write Data
-
-    Writes all data written to the global g_tooltip_data into the specified
-    output file in a pickled format.
-
-    Globals:
-        g_tooltip_data: An array of data from each simulation time step.
-    """
-    with open(outfile, 'w+') as f:
-        cPickle.dump(g_tooltip_data, f)
-
-    return
-
-
-def _clean_up():
-    """Clean Up
-
-    Attempts to shut down any active engines and kills off spawned processes
-    and class objects.
-
-    Globals
-        g_viewer: The OpenGL viewer interface class object.
-        g_env: The ODE simulation environment class object.
-        g_omni: The Phantom Omni controller interface class object.
-    """
-    # Kill the viewer process
-    if g_viewer is not None:
-        g_viewer.stop()
-
-    # Kill the ODE environment objects
-    if g_env is not None:
-        g_env.stop()
-
-    # Kill the controller process
-    if g_omni is not None:
-        g_omni.disconnect()
+        print '>>> Exiting'
 
     return
 

@@ -46,7 +46,6 @@ class HumanControlModel(XODEfile):
 
         return
 
-
     def generate(self):
         """Generate
 
@@ -62,7 +61,6 @@ class HumanControlModel(XODEfile):
         self.writeXODE('./'+self._name)
 
         return
- 
 
     def _build_end_effector(self, y_top_table):
         """Build End Effector
@@ -103,7 +101,6 @@ class HumanControlModel(XODEfile):
 
         return
 
-
     def _build_test_article(self, randomize=True):
         """Build Test Article
 
@@ -136,7 +133,7 @@ class HumanControlModel(XODEfile):
 
         # Build the table
         self.insertBody(bname='table', shape='box', size=siz_table,
-                density=0.0, pos=pos_table, passSet=[],
+                density=0.0, pos=pos_table, passSet=['test_article'],
                 euler=eul_table, mass=m_table, color=(0.1, 0.1, 0.1, 0.6))
 
         # Define the normalized gate height for each gate [y]
@@ -204,10 +201,10 @@ class HumanControlModel(XODEfile):
 
         # Generate the gates at these positions
         for i in range(8):#range(8):
-            self._build_gate(i, y_top_table, gate_height[i], gate_pos[i], gate_rot[i])
+            self._build_gate(i, y_top_table, gate_height[i], gate_pos[i],
+                    gate_rot[i])
 
         return y_top_table
-
 
     def _build_gate(self, num, top_table, gate_height, gate_pos, gate_rot):
         """Build Gate
@@ -338,13 +335,14 @@ class HumanControlModel(XODEfile):
 
         # Create fixed joints between all parts of the gate. This makes it
         # a single body
-        self.insertJoint(base_name, 'table', type='fixed')
         self.insertJoint(support_name, base_name, type='fixed')
         self.insertJoint(stand1_name, support_name, type='fixed')
         self.insertJoint(stand2_name, support_name, type='fixed')
         self.insertJoint(marker1_name, stand1_name, type='fixed')
         self.insertJoint(marker2_name, stand2_name, type='fixed')
 
+        # Fix the gate to the test article table
+        self.insertJoint(base_name, 'table', type='fixed')
         return
 
 
