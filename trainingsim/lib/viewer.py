@@ -16,7 +16,7 @@ Classes:
     Viewer: A customized viewer class for the Surgical Sim application.
 """
 
-import os
+import inspect
 import subprocess
 
 from pybrain.rl.environments.ode.viewer import ODEViewer
@@ -76,14 +76,14 @@ class ViewerInterface(object):
         at a time.
         """
         if self._process is None:
+            # Detect the current file path of this module
+            module_file_path = inspect.getfile(inspect.currentframe())
+
             # TODO: When the process is spawned, send over all arguments
             # passed into the interface object
 
-            # Detect the current file path of this module
-            module_path = os.path.abspath(__file__)
-
             # Launch this own file's main function in a new process
-            self._process = subprocess.Popen([module_path])
+            self._process = subprocess.Popen([module_file_path])
 
         return
 
