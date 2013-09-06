@@ -23,11 +23,3 @@ In order to run, this software requires the following dependencies:
 
 To easily create a new virtual environment and install all dependencies on OS X,
 run this [magical script](https://gist.github.com/evansneath/5678215).
-
-##Usage
-To run the simulation environment and start the OpenGL environment viewer window,
-run the following from command line.
-
-```
-./run.sh
-```
