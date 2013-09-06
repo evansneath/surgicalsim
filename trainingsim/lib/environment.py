@@ -11,7 +11,7 @@ License:
     Open Software License v3.0
 
 Classes:
-    HumanControlEnvironment: Defines the Open Dynamics Engine environment for
+    TrainingSimEnvironment: Defines the Open Dynamics Engine environment for
         the test article simulation given the XODE model filename.
 """
 
@@ -19,8 +19,8 @@ import numpy as np
 from pybrain.rl.environments.ode import ODEEnvironment, actuators
 
 
-class HumanControlEnvironment(ODEEnvironment):
-    """HumanControlEnvironment class
+class TrainingSimEnvironment(ODEEnvironment):
+    """TrainingSimEnvironment class
 
     A class designed to provide a interface to the ODE generated environment
     for the human data capture simulation.
@@ -76,7 +76,7 @@ class HumanControlEnvironment(ODEEnvironment):
                 in the world. (Float - Default: -9.81)
         """
         # Initialize the superclass object
-        super(HumanControlEnvironment, self).__init__(
+        super(TrainingSimEnvironment, self).__init__(
                 render=render,
                 realtime=realtime,
                 ip=ip,
@@ -345,6 +345,10 @@ class HumanControlEnvironment(ODEEnvironment):
             self.updateClients()
         else:
             # Step by iterating the world by 'dt' seconds
-            super(HumanControlEnvironment, self).step()
+            super(TrainingSimEnvironment, self).step()
 
         return
+
+
+if __name__ == '__main__':
+    pass

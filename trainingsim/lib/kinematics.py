@@ -26,3 +26,7 @@ class PA10Kinematics(object):
     def __init__(self):
         super(PA10Kinematics, self).__init__(self)
         return
+
+
+if __name__ == '__main__':
+    pass

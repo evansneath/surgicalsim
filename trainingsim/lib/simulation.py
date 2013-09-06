@@ -3,7 +3,7 @@
 """Simulation module
 
 Contains the simulation class. Simulation handles the main event loop of
-the Human Control Simulation program.
+the Surgical Sim training program.
 
 Author:
     Evan Sneath - evansneath@gmail.com
@@ -22,8 +22,8 @@ import time
 import cPickle
 
 # Import application modules
-from model import HumanControlModel
-from environment import HumanControlEnvironment
+from model import TrainingSimModel
+from environment import TrainingSimEnvironment
 from controller import PhantomOmniInterface
 from viewer import ViewerInterface
 
@@ -44,7 +44,12 @@ class Simulation(object):
     Methods:
         start: Begins the main event loop.
     """
-    def __init__(self, randomize, network, verbose):
+    env = None
+    omni = None
+    viewer = None
+    saved_data = None
+
+    def __init__(self, randomize=False, network=False, verbose=False):
         """Initialize
 
         Creates the environment, viewer, and (Phantom Omni) controller objects
@@ -52,8 +57,11 @@ class Simulation(object):
 
         Arguments:
             randomize: Determines if the test article gates will be randomized.
+                (Default: False)
             network: Determines if the omni connection is local or networked.
+                (Default: False)
             verbose: Determines the level out debug output generated.
+                (Default: False)
         """
         # Generate the XODE file
         XODE_FILENAME = 'model' # .xode is appended automatically
@@ -62,7 +70,7 @@ class Simulation(object):
         if os.path.exists('./'+XODE_FILENAME+'.xode'):
             os.remove('./'+XODE_FILENAME+'.xode')
 
-        xode_model = HumanControlModel(
+        xode_model = TrainingSimModel(
                 name=XODE_FILENAME,
                 randomize_test_article=randomize
         )
@@ -70,7 +78,7 @@ class Simulation(object):
 
         # Start environment
         print '>>> Starting environment'
-        self.env = HumanControlEnvironment(
+        self.env = TrainingSimEnvironment(
                 xode_filename='./'+XODE_FILENAME+'.xode',
                 realtime=False,
                 verbose=verbose
@@ -160,13 +168,13 @@ class Simulation(object):
 
             # Attempt to enforce real-time constraints
             if t_warped >= 0.0:
-                # The calculation took less time than the virtual time. Sleep the
-                # rest off
+                # The calculation took less time than the virtual time. Sleep
+                # the rest off
                 time.sleep(t_warped)
                 t_overshoot = 0.0
             else:
-                # The calculation took more time than the virtual time. We need to
-                # catch up with the virtual time on the next time step
+                # The calculation took more time than the virtual time. We need
+                # to catch up with the virtual time on the next time step
                 t_overshoot = -t_warped
 
         return
@@ -208,3 +216,8 @@ class Simulation(object):
             del self.omni
 
         return
+
+
+if __name__ == '__main__':
+    sim = Simulation()
+    sim.start()

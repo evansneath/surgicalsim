@@ -12,15 +12,15 @@ License:
     Open Software License v3.0
 
 Classes:
-    HumanControlModel: Builds all objects used for the test article simulation.
+    TrainingSimModel: Builds all objects used for the test article simulation.
 """
 
 from pybrain.rl.environments.ode.tools.xodetools import XODEfile
 import numpy as np
 
 
-class HumanControlModel(XODEfile):
-    """HumanControlModel class
+class TrainingSimModel(XODEfile):
+    """TrainingSimModel class
 
     Generates the XODE file used for the ODE environment.
 
@@ -33,13 +33,13 @@ class HumanControlModel(XODEfile):
     def __init__(self, name, randomize_test_article=False):
         """Initialize
 
-        Creates a new HumanControlModel object.
+        Creates a new TrainingSimModel object.
 
         Arguments:
             randomize_test_article: Determines if the test article to be
                 generated will have randomized gates. (Default: False)
         """
-        super(HumanControlModel, self).__init__(name)
+        super(TrainingSimModel, self).__init__(name)
 
         self._name = name
         self._randomize_test_article = randomize_test_article

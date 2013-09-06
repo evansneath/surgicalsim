@@ -21,7 +21,7 @@ Functions:
 import argparse
 
 # Import application modules
-from simulation import Simulation
+from lib.simulation import Simulation
 
 
 def parse_arguments():

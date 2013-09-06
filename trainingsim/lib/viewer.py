@@ -16,7 +16,7 @@ Classes:
     Viewer: A customized viewer class for the Surgical Sim application.
 """
 
-import sys
+import os
 import subprocess
 
 from pybrain.rl.environments.ode.viewer import ODEViewer
@@ -54,7 +54,6 @@ class ViewerInterface(object):
 
         return
 
-
     def update(self):
         """Update Viewer Interface
 
@@ -70,7 +69,6 @@ class ViewerInterface(object):
 
         return
 
-
     def start(self):
         """Start Viewer
 
@@ -81,11 +79,13 @@ class ViewerInterface(object):
             # TODO: When the process is spawned, send over all arguments
             # passed into the interface object
 
+            # Detect the current file path of this module
+            module_path = os.path.abspath(__file__)
+
             # Launch this own file's main function in a new process
-            self._process = subprocess.Popen(['./viewer.py'])
+            self._process = subprocess.Popen([module_path])
 
         return
-    
 
     def stop(self):
         """Stop Viewer
@@ -141,7 +141,6 @@ class Viewer(ODEViewer):
 
         return
 
-
     def _keyboard_callback(self, key, x, y):
         """OpenGL Key Handler Function
 
@@ -172,6 +171,5 @@ class Viewer(ODEViewer):
 
 
 if __name__ == '__main__':
-    # Simple usage example
     viewer = Viewer()
     viewer.start()
