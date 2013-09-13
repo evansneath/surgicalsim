@@ -81,7 +81,8 @@ class Simulation(object):
         self.env = TrainingSimEnvironment(
                 xode_filename='./'+XODE_FILENAME+'.xode',
                 realtime=False,
-                verbose=verbose
+                verbose=verbose,
+                gravity=0.0
         )
 
         # Start viewer
