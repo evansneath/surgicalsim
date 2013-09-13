@@ -359,39 +359,84 @@ def build_gate(xode, num, top_table, gate_height, gate_pos, gate_rot):
 
 
 def build_pa10(xode, x_offset, z_offset):
+    pa10_passset = ['pa10']
+
     # Determine link 0 (base) paramters
     # TODO: Get an accurate measurement of this value
-    l0_height = 0.315 * (1.0 / 2.0) # [m]
-    l0_width = 0.220 # [m]
-    l0_size = np.array([l0_width/2.0, l0_height]) # [m]
-    l0_mass = 8410.0 # [g]
+    l0_height = 0.195 # [m]
+    l0_diameter = 0.220 # [m]
+    l0_size = np.array([l0_diameter/2.0, l0_height]) # [m]
+    # NOTE: This is an estimate of the mass of l0
+    l0_mass = 8000.0 # [g]
     l0_pos = np.array([x_offset, l0_height/2.0, z_offset]) # [m]
     l0_eul = np.array([90.0, 0.0, 0.0])
 
-    xode.insertBody(bname='pa10_l0', shape='cylinder', size=l0_size, density=0.0,
-            pos=l0_pos, passSet=['pa10'], euler=l0_eul, mass=l0_mass
+    xode.insertBody(
+            bname='pa10_l0',
+            shape='cylinder',
+            size=l0_size,
+            density=0.0,
+            pos=l0_pos,
+            passSet=pa10_passset,
+            euler=l0_eul,
+            mass=l0_mass,
+            color=(0.2, 0.2, 0.2, 1.0)
     )
 
     l0_top = l0_height
 
     # Determine link 1 parameters
+    # NOTE: This is an estimation of the l1 mass parameter
+    l1_mass = 2000.0
 
-    # TODO: This is a makeshift base for l1. Replace this with actually measured values
-    xode.insertBody(bname='pa10_l1_base', shape='cylinder', size=[l0_width/2.0, 0.03], density=0.0,
-            pos=[x_offset, l0_top+0.015, z_offset], passSet=['pa10'], euler=[90.0, 0.0, 0.0],
-            mass=900)
+    # Define the l1 base parameters
+    l1_base_height = 0.020 # [m]
+    l1_base_diameter = l0_diameter
 
-    # TODO: Get an accurate measurement of this value
-    l1_height = 0.315 * (1.0 / 2.0) # [m]
-    l1_width = 0.260 # [m]
-    l1_depth = 0.140 # [m]
-    l1_size = np.array([l1_height, l1_width, l1_depth]) # [m]
-    l1_mass = 3510.0 # [g]
-    l1_pos = np.array([x_offset, l0_top+(l1_height/2.0), z_offset]) # [m]
+    l1_base_size = np.array([
+        l1_base_diameter/2.0,
+        l1_base_height
+    ])
 
-    build_oblong_cylinder(xode, 'pa10_l1', l1_mass, ['pa10'], l1_size, l1_pos)
+    l1_base_pos = np.array([
+        x_offset,
+        l0_top+(l1_base_height/2.0),
+        z_offset
+    ])
+    
+    # Define the l1 connectors parameters
+    l1_connector_height = 0.190 # [m]
+    l1_connector_width = 0.050 # [m]
+    l1_connector_depth = 0.140 # [m]
 
-    l1_top = l0_top + l1_height
+    l1_connector_size = np.array([
+        l1_connector_height,
+        l1_connector_width,
+        l1_connector_depth
+    ])
+
+    l1_connector_pos = np.array([
+        x_offset,
+        l0_top+(l1_connector_height/2.0),
+        z_offset
+    ])
+
+    l1_connector_distance = 0.160 # [m]
+
+    build_connector_joint(
+            xode,
+            name='pa10_l1',
+            mass=l1_mass,
+            passset=pa10_passset,
+            connector_size=l1_connector_size,
+            connector_pos=l1_connector_pos,
+            connector_distance=l1_connector_distance,
+            base_size=l1_base_size,
+            base_pos=l1_base_pos,
+            color=(0.5, 0.5, 0.5, 1.0)
+    )
+
+    l1_top = l0_top + l1_connector_height
 
     # TODO: Determine link 2 parameters
     # TODO: Determine link 3 parameters
@@ -404,8 +449,95 @@ def build_pa10(xode, x_offset, z_offset):
 
     return
 
+def build_connector_joint(xode, name, mass, passset, connector_size,
+        connector_pos, connector_distance, base_size, base_pos, color):
+    """Build Connector Joint
 
-def build_oblong_cylinder(xode, name, mass, passset, size, pos):
+    Construct a connector joint for the PA10 robotic arm.
+    """
+    # Determine base parameters
+    base_name = name
+    base_radius = base_size[0]
+    base_height = base_size[1]
+
+    # Calculate the volume of the base for mass distribution purposes
+    base_volume = (np.pi * (base_radius) ** 2) * base_height
+
+    # Calculate the volume of the connector for mass distribution purposes
+    connector_cyl_volume = (connector_size[1] * ((np.pi *
+                            (connector_size[2] / 2.0) ** 2) / 2.0))
+    connector_box_volume = (connector_size[1] * (connector_size[0] -
+                            connector_size[2]) * connector_size[2])
+    connector_volume = (connector_cyl_volume * 2) + connector_box_volume
+
+    total_volume = base_volume + (connector_volume * 2)
+
+    # Calculate mass for each part based on volumes so all densities are equal
+    base_mass = mass * (base_volume / total_volume)
+    connector_mass = mass * (connector_volume / total_volume)
+
+    # Determine first connector parameters
+    connector1_name = name + '_connector1'
+    connector1_pos = np.array([
+        connector_pos[0]+(connector_distance/2.0)+(connector_size[1]/2.0),
+        connector_pos[1],
+        connector_pos[2]
+    ])
+
+    build_oblong_cylinder(
+            xode,
+            name=connector1_name,
+            mass=connector_mass,
+            passset=passset,
+            size=connector_size,
+            pos=connector1_pos,
+            color=color
+    )
+
+    # Determine second connector parameters (copy of the first flipped over the
+    # center position)
+    connector2_name = name + '_connector2'
+    connector2_pos = np.array([
+        connector_pos[0]-(connector_distance/2.0)-(connector_size[1]/2.0),
+        connector_pos[1],
+        connector_pos[2]
+    ])
+
+    build_oblong_cylinder(
+            xode,
+            name=connector2_name,
+            mass=connector_mass,
+            passset=passset,
+            size=connector_size,
+            pos=connector2_pos,
+            color=color
+    )
+
+    # Insert the base body into the system
+    xode.insertBody(
+            bname=base_name,
+            shape='cylinder',
+            size=base_size,
+            density=0.0,
+            pos=base_pos,
+            passSet=passset,
+            euler=[90.0, 0.0, 0.0],
+            mass=base_mass,
+            color=color
+    )
+
+    # Make fixed joints between the connectors and base
+    xode.insertJoint(connector1_name, base_name, type='fixed')
+    xode.insertJoint(connector2_name, base_name, type='fixed')
+
+    return
+
+
+def build_oblong_cylinder(xode, name, mass, passset, size, pos, color):
+    """Build Oblong Cylinder
+
+    Construct an oblong cylinder body.
+    """
     height = size[0]
     width = size[1]
     depth = size[2]
@@ -429,28 +561,48 @@ def build_oblong_cylinder(xode, name, mass, passset, size, pos):
     lo_cyl_pos = np.array([x, y-(height/2.0)+(depth/2.0), z])
     lo_cyl_eul = np.array([0.0, 90.0, 0.0])
 
-    cyl_area = width * ((np.pi * (depth / 2.0) ** 2) / 2.0)
-    box_area = width * (height - depth) * depth
-    total_area = (cyl_area * 2) + box_area
+    cyl_volume = width * ((np.pi * (depth / 2.0) ** 2) / 2.0)
+    box_volume = width * (height - depth) * depth
+    total_volume = (cyl_volume * 2) + box_volume
 
-    box_mass = mass * (box_area / total_area)
-    up_cyl_mass = mass * (cyl_area / total_area)
-    lo_cyl_mass = mass * (cyl_area / total_area)
+    box_mass = mass * (box_volume / total_volume)
+    up_cyl_mass = mass * (cyl_volume / total_volume)
+    lo_cyl_mass = mass * (cyl_volume / total_volume)
 
-    print 'BOX MASS:', box_mass
-
-    xode.insertBody(bname=box_name, shape='box', size=box_siz, density=0.0,
-            pos=box_pos, passSet=passset, euler=box_eul, mass=box_mass
+    xode.insertBody(
+            bname=box_name,
+            shape='box',
+            size=box_siz,
+            density=0.0,
+            pos=box_pos,
+            passSet=passset,
+            euler=box_eul,
+            mass=box_mass,
+            color=color
     )
 
-    xode.insertBody(bname=up_cyl_name, shape='cylinder', size=up_cyl_siz,
-            density=0.0, pos=up_cyl_pos, passSet=passset, euler=up_cyl_eul,
-            mass=up_cyl_mass
+    xode.insertBody(
+            bname=up_cyl_name,
+            shape='cylinder',
+            size=up_cyl_siz,
+            density=0.0,
+            pos=up_cyl_pos,
+            passSet=passset,
+            euler=up_cyl_eul,
+            mass=up_cyl_mass,
+            color=color
     )
 
-    xode.insertBody(bname=lo_cyl_name, shape='cylinder', size=lo_cyl_siz,
-            density=0.0, pos=lo_cyl_pos, passSet=passset, euler=lo_cyl_eul,
-            mass=lo_cyl_mass
+    xode.insertBody(
+            bname=lo_cyl_name,
+            shape='cylinder',
+            size=lo_cyl_siz,
+            density=0.0,
+            pos=lo_cyl_pos,
+            passSet=passset,
+            euler=lo_cyl_eul,
+            mass=lo_cyl_mass,
+            color=color
     )
 
     xode.insertJoint(up_cyl_name, box_name, type='fixed')
