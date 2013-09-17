@@ -715,7 +715,8 @@ def build_pa10(xode, x_offset, z_offset):
             color=light_gray
     )
 
-    # Determine joints between each PA10 link
+    # TODO: Determine joints between each PA10 link
+    #xode.insertJoint('pa10_l0', 'pa10_l1', type='amotor', name='pa10_s1')
 
     return
 

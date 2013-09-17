@@ -16,6 +16,7 @@ Classes:
 """
 
 import numpy as np
+import ode
 from pybrain.rl.environments.ode import ODEEnvironment, actuators
 
 
@@ -48,6 +49,7 @@ class TrainingSimEnvironment(ODEEnvironment):
             body name.
         set_body_angular_vel: Sets the angular velocity of a body given a
             body name.
+        get_joint_by_name: Returns the ODE joint object given a joint name.
         step: Step the world by 'dt' seconds.
     """
     def __init__(self, xode_filename, render=True, realtime=True,
@@ -89,11 +91,11 @@ class TrainingSimEnvironment(ODEEnvironment):
         # Load XODE file (This is generated prior to env initialization)
         self.loadXODE(xode_filename)
 
-        # TODO: Once kinematics for PA10 are added, add actuators for all joints (7)
-        #self.addActuator(actuators.JointActuator())
-
         self.dt = 0.01
 
+        self.get_init_body_positions()
+
+        # TODO: Move this out of the custom base class
         # Create a movement group for the pointer. Note that the first body
         # defined in the group currently acts as the center of rotation. All
         # objects in the group should be fixed to at least one other object.
@@ -101,16 +103,12 @@ class TrainingSimEnvironment(ODEEnvironment):
                 'pointer': ['tooltip', 'stick'],
         }
 
-        self.init_body_positions = {}
 
-        # Get the initial locations for each body object. We know init velocities
-        # will be zero. No forces are applied at first timestep
-        for (body, _) in self.body_geom:
-            if body is not None:
-                self.init_body_positions[body.name] = self.get_body_pos(body.name)
+        # TODO: Move this out of the custom base class
+        #self.set_motor_axis('pa10_s1', (0, 1, 0))
+        #self.set_motor_angular_vel('pa10_s1', 0.1)
 
         return
-
 
     def set_dt(self, dt):
         """Set Time Difference
@@ -125,6 +123,16 @@ class TrainingSimEnvironment(ODEEnvironment):
 
         return
 
+    def get_init_body_positions(self):
+        self.init_body_positions = {}
+
+        # Get the initial locations for each body object. We know init velocities
+        # will be zero. No forces are applied at first timestep
+        for (body, _) in self.body_geom:
+            if body is not None:
+                self.init_body_positions[body.name] = self.get_body_pos(body.name)
+
+        return
 
     def set_torques(self, torques):
         """Set Joint Torques
@@ -144,7 +152,7 @@ class TrainingSimEnvironment(ODEEnvironment):
             torques: A list of torques to apply to the 7 joints of the PA10.
         """
         # TODO: Switch this to a 7-joint system
-        assert len(torques) == 2
+        assert len(torques) == 7
 
         self.torques = np.array(torques)
 
@@ -154,7 +162,6 @@ class TrainingSimEnvironment(ODEEnvironment):
             a._update(self.torques[i])
 
         return
-
 
     def set_group_pos(self, group_name, pos):
         """Set Group Position
@@ -175,7 +182,6 @@ class TrainingSimEnvironment(ODEEnvironment):
 
         return
 
-
     def set_group_linear_vel(self, group_name, vel):
         """Set Group Linear Velocity
 
@@ -192,7 +198,6 @@ class TrainingSimEnvironment(ODEEnvironment):
 
         return
 
-    
     def set_group_angular_vel(self, group_name, vel):
         """Set Group Angular Velocity
 
@@ -209,7 +214,6 @@ class TrainingSimEnvironment(ODEEnvironment):
             self.set_body_angular_vel(body_name, tuple(new_vel))
 
         return
-
 
     def get_body_by_name(self, name):
         """Get Body By Name
@@ -228,8 +232,7 @@ class TrainingSimEnvironment(ODEEnvironment):
             if body is not None and body.name == name:
                 return body
 
-        return None
-
+        return
 
     def get_body_pos(self, name):
         """Get Body Position
@@ -245,7 +248,6 @@ class TrainingSimEnvironment(ODEEnvironment):
         body = self.get_body_by_name(name)
         pos = body.getPosition()
         return pos
-
 
     def set_body_pos(self, name, pos):
         """Set Body Position
@@ -263,7 +265,6 @@ class TrainingSimEnvironment(ODEEnvironment):
         body.setPosition(tuple(pos))
         return
 
-
     def get_body_angular_vel(self, name):
         """Get Body Angular Velocity
 
@@ -278,7 +279,6 @@ class TrainingSimEnvironment(ODEEnvironment):
         body = self.get_body_by_name(name)
         vel = body.getAngularVel()
         return vel
-
 
     def set_body_angular_vel(self, name, vel):
         """Set Body Angular Velocity
@@ -296,7 +296,6 @@ class TrainingSimEnvironment(ODEEnvironment):
         body.setAngularVel(tuple(vel))
         return
 
-
     def get_body_linear_vel(self, name):
         """Get Body Linear Velocity
 
@@ -311,7 +310,6 @@ class TrainingSimEnvironment(ODEEnvironment):
         body = self.get_body_by_name(name)
         vel = body.getLinearVel()
         return vel
-
 
     def set_body_linear_vel(self, name, vel):
         """Set Body Linear Velocity
@@ -329,6 +327,76 @@ class TrainingSimEnvironment(ODEEnvironment):
         body.setLinearVel(tuple(vel))
         return
 
+    def get_joint_by_name(self, name):
+        """Get Joint By Name
+
+        Finds and returns the ODE joint object given a valid joint name.
+
+        Arguments:
+            name: The name of the joint to return.
+
+        Returns:
+            The copied joint object if found, None otherwise.
+        """
+        for actuator in self.actuators:
+            if a.name == name:
+                return actuator
+
+        return
+
+    def set_motor_axis(self, name, axes):
+        """Set Motor Axis
+
+        Sets the movable axis of the motor in terms of rotation relative to
+        global coordinates. The current angle of the motor is then set as 0.
+
+        Ex. axes=(1, 0, 0) indicates that the x axis of link 1 will be active.
+
+        Arguments:
+            name: The name of the motor to modify.
+            axes: A 3-object tuple or list containing (x, y, z) axis rotation.
+                1 is given if the axis is enabled. 0 if disabled.
+
+        Returns:
+            None
+        """
+        joint = self.get_joint_by_name(name)
+
+        # TODO: Get rid of this debug print
+        print type(joint)
+        assert type(joint) == ode.AMotor
+
+        # Only 1 axis will be controlled by this motor
+        joint.setNumAxes(1)
+
+        # Set the axis (axes vector is relative to global coordinates
+        joint.setAxis(0, 1, axes)
+
+        # Set the motor control to euler rotation
+        joint.setMode(ode.AMotorEuler)
+
+        # Zero out the joint angle at this position
+        joint.setAngle(0.0)
+        return
+
+    def set_motor_angular_vel(self, name, vel):
+        """Set Motor Velocity
+
+        Sets the euler rotational velocity of the motor in yaw-pitch-roll
+        coordinates relative to the link 1 of the motor.
+
+        Arguments:
+            name: The name of the joint to modify.
+            vel: A 1-dimensional angular velocity given in radians per second.
+
+        Returns:
+            None
+        """
+        joint = self.get_joint_by_name(name)
+        assert type(joint) == ode.AMotor
+
+        joint.setParams(ode.ParamVel, vel)
+        return
 
     def step(self, paused=False):
         """Step World
