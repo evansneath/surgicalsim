@@ -48,6 +48,7 @@ def build_pa10(xode, x_offset, z_offset):
     )
 
     l0_top = l0_height
+    l0_l1_joint = l0_top
 
     # Determine link 1 parameters
     # NOTE: This is an estimation of the l1 mass parameter
@@ -102,6 +103,7 @@ def build_pa10(xode, x_offset, z_offset):
     )
 
     l1_top = l0_top + l1_connector_height
+    l1_l2_joint = l1_top - (l1_connector_depth / 2.0)
 
     # Determine link 2 parameters
     l2_mass = 8410.0 # [g]
@@ -147,6 +149,7 @@ def build_pa10(xode, x_offset, z_offset):
     )
 
     l2_top = l1_top + (l2_arm_length - (l2_joint_diameter / 2.0)) # [m]
+    l2_l3_joint = l2_top
 
     # Determine link 3 parameters
     l3_mass = 3510.0 # [g]
@@ -200,6 +203,7 @@ def build_pa10(xode, x_offset, z_offset):
     )
 
     l3_top = l2_top + l3_connector_height
+    l3_l4_joint = l3_top - (l3_connector_depth / 2.0)
 
     # Determine link 4 parameters
     l4_mass = 4310.0 # [g]
@@ -245,6 +249,7 @@ def build_pa10(xode, x_offset, z_offset):
     )
 
     l4_top = l3_top + (l4_arm_length - (l4_joint_diameter / 2.0)) # [m]
+    l4_l5_joint = l4_top
 
     # Determine link 5 parameters
     l5_mass = 3450.0 # [g]
@@ -298,6 +303,7 @@ def build_pa10(xode, x_offset, z_offset):
     )
 
     l5_top = l4_top + l5_connector_height
+    l5_l6_joint = l5_top - (l5_connector_depth / 2.0)
 
     # Determine link 6 parameters
     l6_mass = 1460.0 # [g]
@@ -343,6 +349,7 @@ def build_pa10(xode, x_offset, z_offset):
     )
 
     l6_top = l6_arm_pos[1] + (l6_arm_length / 2.0) # [m]
+    l6_l7_joint = l6_top
 
     # Determine link 7 parameters
     l7_mass = 240.0
@@ -377,7 +384,76 @@ def build_pa10(xode, x_offset, z_offset):
     )
 
     # TODO: Determine joints between each PA10 link
-    #xode.insertJoint('pa10_l0', 'pa10_l1', type='amotor', name='pa10_s1')
+
+    ##########################################################################
+    # NOTE: Where I left off.
+    #       I'm trying to get this joint into the list of actuators in
+    #       the environment module.
+    ##########################################################################
+    xode.affixToEnvironment('pa10_l0')
+
+    xode.insertJoint(
+            body1='pa10_l0',
+            body2='pa10_l1',
+            type='hinge',
+            name='pa10_s1',
+            anchor=(x_offset, l0_l1_joint, z_offset),
+            axis={'x':0, 'y':1, 'z':0, 'FMax':200}
+    )
+
+    xode.insertJoint(
+            body1='pa10_l1',
+            body2='pa10_l2',
+            type='hinge',
+            name='pa10_s2',
+            anchor=(x_offset, l1_l2_joint, z_offset),
+            axis={'x':1, 'y':0, 'z':0, 'FMax':200}
+    )
+
+    xode.insertJoint(
+            body1='pa10_l2',
+            body2='pa10_l3',
+            type='hinge',
+            name='pa10_s3',
+            anchor=(x_offset, l2_l3_joint, z_offset),
+            axis={'x':0, 'y':1, 'z':0, 'FMax':200}
+    )
+
+    xode.insertJoint(
+            body1='pa10_l3',
+            body2='pa10_l4',
+            type='hinge',
+            name='pa10_e1',
+            anchor=(x_offset, l3_l4_joint, z_offset),
+            axis={'x':1, 'y':0, 'z':0, 'FMax':200}
+    )
+
+    xode.insertJoint(
+            body1='pa10_l4',
+            body2='pa10_l5',
+            type='hinge',
+            name='pa10_e2',
+            anchor=(x_offset, l4_l5_joint, z_offset),
+            axis={'x':0, 'y':1, 'z':0, 'FMax':200}
+    )
+
+    xode.insertJoint(
+            body1='pa10_l5',
+            body2='pa10_l6',
+            type='hinge',
+            name='pa10_w1',
+            anchor=(x_offset, l5_l6_joint, z_offset),
+            axis={'x':1, 'y':0, 'z':0, 'FMax':200}
+    )
+
+    xode.insertJoint(
+            body1='pa10_l6',
+            body2='pa10_l7',
+            type='hinge',
+            name='pa10_w2',
+            anchor=(x_offset, l6_l7_joint, z_offset),
+            axis={'x':0, 'y':1, 'z':0, 'FMax':200}
+    )
 
     return
 
@@ -435,6 +511,8 @@ def _build_arm_segment(xode, name, mass, passset, joint_size, joint_pos,
             mass=arm_mass,
             color=color
     )
+
+    xode.insertJoint(arm_name, joint_name, type='fixed')
     
     return
 

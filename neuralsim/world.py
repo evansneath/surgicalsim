@@ -64,7 +64,7 @@ class NeuralSimWorld(XODEfile):
                 self._randomize_test_article)
 
         # Build the Mitsubishi PA10 robotic arm
-        models.build_pa10(self, 0.0, -0.5)
+        models.build_pa10(self, 0.0, 1.0)
 
         self.writeXODE('./'+self._name)
 

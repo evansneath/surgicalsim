@@ -87,6 +87,11 @@ class TrainingSimulation(object):
                 gravity=0.0
         )
 
+        # Set up all grouped bodies in the environment
+        self.env.groups = {
+            'pointer': ['tooltip', 'stick'],
+        }
+
         # Start viewer
         print '>>> Starting viewer'
         self.viewer = ViewerInterface(verbose=verbose)

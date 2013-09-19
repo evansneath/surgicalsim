@@ -101,11 +101,21 @@ class NeuralSimulation(object):
         stopped = False
 
         # Define the simulation frame rate
+        t = 0.0
         dt = 1.0 / float(fps) # [s]
 
         # Keep track of time overshoot in the case that simulation time must be
         # increased in order to maintain real-time constraints
         t_overshoot = 0.0
+
+        # TODO: Make joint motor actuation more easily accessible
+        #from pybrain.rl.environments.ode import actuators
+        #self.env.addActuator(actuators.SpecificJointActuator(['pa10_s1'], name='pa10_s1'))
+        #self.env.addActuator(actuators.SpecificJointActuator(['pa10_s2'], name='pa10_s2'))
+        #self.env.addActuator(actuators.SpecificJointActuator(['pa10_w1'], name='pa10_w1'))
+        #self.env.set_motor_angular_vel('pa10_s1', 0.8)
+        #self.env.set_motor_angular_vel('pa10_s2', 0.2)
+        #self.env.set_motor_angular_vel('pa10_w1', 0.2)
 
         while not stopped:
             t_start = time.time()
@@ -122,10 +132,9 @@ class NeuralSimulation(object):
                 self.env.step(paused=True)
                 continue
 
-            # TODO: DO PA10 ACTUATION HERE
-
             # Step through the world by 1 time frame
             self.env.step()
+            t += dt_warped
 
             # Determine the difference in virtual vs actual time
             t_warped = dt - (time.time() - t_start)

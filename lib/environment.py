@@ -21,7 +21,7 @@ from pybrain.rl.environments.ode import ODEEnvironment, actuators
 
 
 class EnvironmentInterface(ODEEnvironment):
-    """InterfaceEnvironment class
+    """EnvironmentInterface class
 
     A class designed to provide a interface to the ODE generated environment
     for the human data capture simulation and neural network training.
@@ -94,19 +94,6 @@ class EnvironmentInterface(ODEEnvironment):
 
         self.get_init_body_positions()
 
-        # TODO: Move this out of the custom base class
-        # Create a movement group for the pointer. Note that the first body
-        # defined in the group currently acts as the center of rotation. All
-        # objects in the group should be fixed to at least one other object.
-        self.groups = {
-                'pointer': ['tooltip', 'stick'],
-        }
-
-
-        # TODO: Move this out of the custom base class
-        #self.set_motor_axis('pa10_s1', (0, 1, 0))
-        #self.set_motor_angular_vel('pa10_s1', 0.1)
-
         return
 
     def set_dt(self, dt):
@@ -156,7 +143,7 @@ class EnvironmentInterface(ODEEnvironment):
         self.torques = np.array(torques)
 
         # Set the actuators to each joint. Actuators are used in the
-        # ODEEnvironments superclass
+        # ODEEnvironment superclass
         for i, actuator in enumerate(self.actuators):
             a._update(self.torques[i])
 
@@ -338,45 +325,22 @@ class EnvironmentInterface(ODEEnvironment):
             The copied joint object if found, None otherwise.
         """
         for actuator in self.actuators:
-            if a.name == name:
-                return actuator
+            if actuator.name == name:
+                return actuator._joints[0]
 
         return
 
-    def set_motor_axis(self, name, axes):
-        """Set Motor Axis
-
-        Sets the movable axis of the motor in terms of rotation relative to
-        global coordinates. The current angle of the motor is then set as 0.
-
-        Ex. axes=(1, 0, 0) indicates that the x axis of link 1 will be active.
-
-        Arguments:
-            name: The name of the motor to modify.
-            axes: A 3-object tuple or list containing (x, y, z) axis rotation.
-                1 is given if the axis is enabled. 0 if disabled.
-
-        Returns:
-            None
-        """
-        joint = self.get_joint_by_name(name)
-
-        # TODO: Get rid of this debug print
-        print type(joint)
-        assert type(joint) == ode.AMotor
-
-        # Only 1 axis will be controlled by this motor
-        joint.setNumAxes(1)
-
-        # Set the axis (axes vector is relative to global coordinates
-        joint.setAxis(0, 1, axes)
-
-        # Set the motor control to euler rotation
-        joint.setMode(ode.AMotorEuler)
-
-        # Zero out the joint angle at this position
-        joint.setAngle(0.0)
-        return
+    #def set_motor_axis(self, name, axes):
+    #    joint = self.get_joint_by_name(name)
+    #    # Only 1 axis will be controlled by this motor
+    #    joint.setNumAxes(1)
+    #    # Set the axis (axes vector is relative to global coordinates
+    #    joint.setAxis(0, 1, axes)
+    #    # Set the motor control to euler rotation
+    #    joint.setMode(ode.AMotorEuler)
+    #    # Zero out the joint angle at this position
+    #    joint.setAngle(0.0)
+    #    return
 
     def set_motor_angular_vel(self, name, vel):
         """Set Motor Velocity
@@ -392,9 +356,7 @@ class EnvironmentInterface(ODEEnvironment):
             None
         """
         joint = self.get_joint_by_name(name)
-        assert type(joint) == ode.AMotor
-
-        joint.setParams(ode.ParamVel, vel)
+        joint.setParam(ode.ParamVel, vel)
         return
 
     def step(self, paused=False):
