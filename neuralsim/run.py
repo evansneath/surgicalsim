@@ -3,7 +3,7 @@
 """Run module
 
 Acts as the main event loop and command line interface for the Surgical Sim
-test article training simulator.
+PA10 neural network simulator.
 
 Author:
     Evan Sneath - evansneath@gmail.com
@@ -21,7 +21,7 @@ Functions:
 import argparse
 
 # Import application modules
-from simulation import TrainingSimulation
+from simulation import NeuralSimulation
 
 
 def parse_arguments():
@@ -42,14 +42,6 @@ def parse_arguments():
             '-r', '--randomize', action='store_true',
             help='randomize test article gate placement'
     )
-    parser.add_argument(
-            '-n', '--network', action='store_true',
-            help='controller is non-local. ip/port info will be prompted'
-    )
-    parser.add_argument(
-            '-o', '--outfile', action='store', default='out.dat',
-            help='target path for the tooltip pickled data'
-    )
 
     args = parser.parse_args()
 
@@ -69,17 +61,13 @@ def main():
     try:
         # Initialize all module of the simulation
         print '>>> Initializing...'
-        sim = TrainingSimulation(args.randomize, args.network, args.verbose)
+        sim = NeuralSimulation(args.randomize, args.verbose)
 
         # Continue to execute the main simulation loop
         print '>>> Running... (ctrl+c to exit)'
         sim.start()
     except KeyboardInterrupt as e:
         # Except the keyboard interrupt as the valid way of leaving the loop
-        if sim is not None:
-            print '\n>>> Writing captured data'
-            sim.write_data(args.outfile)
-
         print '>>> Cleaning up...'
         del sim
 

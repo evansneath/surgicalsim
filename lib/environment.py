@@ -11,8 +11,8 @@ License:
     Open Software License v3.0
 
 Classes:
-    TrainingSimEnvironment: Defines the Open Dynamics Engine environment for
-        the test article simulation given the XODE model filename.
+    EnvironmentInteface: Defines the Open Dynamics Engine environment for
+        the surgical simulation applications given the XODE model filename.
 """
 
 import numpy as np
@@ -20,11 +20,11 @@ import ode
 from pybrain.rl.environments.ode import ODEEnvironment, actuators
 
 
-class TrainingSimEnvironment(ODEEnvironment):
-    """TrainingSimEnvironment class
+class EnvironmentInterface(ODEEnvironment):
+    """InterfaceEnvironment class
 
     A class designed to provide a interface to the ODE generated environment
-    for the human data capture simulation.
+    for the human data capture simulation and neural network training.
 
     Inherits:
         ODEEnvironment: The PyBrain ODE environment class.
@@ -55,7 +55,6 @@ class TrainingSimEnvironment(ODEEnvironment):
     def __init__(self, xode_filename, render=True, realtime=True,
             ip='127.0.0.1', port='21590', buffer='16384', verbose=False,
             gravity=-9.81):
-
         """Initialize
 
         Initializes the ODE world, variables, the frame rate and the 
@@ -78,7 +77,7 @@ class TrainingSimEnvironment(ODEEnvironment):
                 in the world. (Float - Default: -9.81)
         """
         # Initialize the superclass object
-        super(TrainingSimEnvironment, self).__init__(
+        super(EnvironmentInterface, self).__init__(
                 render=render,
                 realtime=realtime,
                 ip=ip,
@@ -413,7 +412,7 @@ class TrainingSimEnvironment(ODEEnvironment):
             self.updateClients()
         else:
             # Step by iterating the world by 'dt' seconds
-            super(TrainingSimEnvironment, self).step()
+            super(EnvironmentInterface, self).step()
 
         return
 
