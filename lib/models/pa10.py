@@ -383,76 +383,131 @@ def build_pa10(xode, x_offset, z_offset):
             color=light_gray
     )
 
-    # TODO: Determine joints between each PA10 link
+    # Determine joints between each PA10 link
 
-    ##########################################################################
-    # NOTE: Where I left off.
-    #       I'm trying to get this joint into the list of actuators in
-    #       the environment module.
-    ##########################################################################
     xode.affixToEnvironment('pa10_l0')
 
+    # NOTE: All joint high/low stops are taken from section 2-7 of the PA10
+    #       user manual
+
+    # Generate the S1 shoulder joint
+    s1_axis = {
+        'x':0, 'y':1, 'z':0,
+        'FMax':200,
+        'LowStop':np.deg2rad(-177),
+        'HiStop':np.deg2rad(177),
+    }
     xode.insertJoint(
             body1='pa10_l0',
             body2='pa10_l1',
             type='hinge',
             name='pa10_s1',
             anchor=(x_offset, l0_l1_joint, z_offset),
-            axis={'x':0, 'y':1, 'z':0, 'FMax':200}
+            axis=s1_axis
     )
 
+    # Generate the S2 shoulder joint
+    s2_axis = {
+        'x':1, 'y':0, 'z':0,
+        'FMax':200,
+        'LowStop':np.deg2rad(-91),
+        'HiStop':np.deg2rad(91),
+    }
     xode.insertJoint(
             body1='pa10_l1',
             body2='pa10_l2',
             type='hinge',
             name='pa10_s2',
             anchor=(x_offset, l1_l2_joint, z_offset),
-            axis={'x':1, 'y':0, 'z':0, 'FMax':200}
+            axis=s2_axis
     )
 
+    # Generate the S3 shoulder joint
+    s3_axis = {
+        'x':0, 'y':1, 'z':0,
+        'FMax':200,
+        'LowStop':np.deg2rad(-174),
+        'HiStop':np.deg2rad(174),
+    }
     xode.insertJoint(
             body1='pa10_l2',
             body2='pa10_l3',
             type='hinge',
             name='pa10_s3',
             anchor=(x_offset, l2_l3_joint, z_offset),
-            axis={'x':0, 'y':1, 'z':0, 'FMax':200}
+            axis=s3_axis
     )
 
+    # Generate the E1 elbow joint
+    e1_axis = {
+        'x':1, 'y':0, 'z':0,
+        'FMax':200,
+        'LowStop':np.deg2rad(-137),
+        'HiStop':np.deg2rad(137),
+    }
     xode.insertJoint(
             body1='pa10_l3',
             body2='pa10_l4',
             type='hinge',
             name='pa10_e1',
             anchor=(x_offset, l3_l4_joint, z_offset),
-            axis={'x':1, 'y':0, 'z':0, 'FMax':200}
+            axis=e1_axis
     )
 
+    # Generate the E2 elbow joint
+
+    # NOTE: The actual low/high stop is +-255 degress for the E2 joint. This
+    #       is modified to be between +-180 degrees to accomodate for ODE
+    #       Hi/Lo stop restrictions.
+    e2_axis = {
+        'x':0, 'y':1, 'z':0,
+        'FMax':200,
+        'LowStop':np.deg2rad(-177),
+        'HiStop':np.deg2rad(177),
+    }
     xode.insertJoint(
             body1='pa10_l4',
             body2='pa10_l5',
             type='hinge',
             name='pa10_e2',
             anchor=(x_offset, l4_l5_joint, z_offset),
-            axis={'x':0, 'y':1, 'z':0, 'FMax':200}
+            axis=e2_axis
     )
 
+    # Generate the W1 wrist joint
+    w1_axis = {
+        'x':1, 'y':0, 'z':0,
+        'FMax':200,
+        'LowStop':np.deg2rad(-165),
+        'HiStop':np.deg2rad(165),
+    }
     xode.insertJoint(
             body1='pa10_l5',
             body2='pa10_l6',
             type='hinge',
             name='pa10_w1',
             anchor=(x_offset, l5_l6_joint, z_offset),
-            axis={'x':1, 'y':0, 'z':0, 'FMax':200}
+            axis=w1_axis
     )
 
+    # Generate the W2 wrist joint
+
+    # NOTE: The actual low/high stop is +-360 degress for the W1 joint. This
+    #       is modified to be between +-180 degrees to accomodate for ODE
+    #       Hi/Lo stop restrictions.
+    w2_axis = {
+        'x':0, 'y':1, 'z':0,
+        'FMax':200,
+        'LowStop':np.deg2rad(-177),
+        'HiStop':np.deg2rad(177),
+    }
     xode.insertJoint(
             body1='pa10_l6',
             body2='pa10_l7',
             type='hinge',
             name='pa10_w2',
             anchor=(x_offset, l6_l7_joint, z_offset),
-            axis={'x':0, 'y':1, 'z':0, 'FMax':200}
+            axis=w2_axis
     )
 
     return

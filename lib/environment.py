@@ -36,7 +36,6 @@ class EnvironmentInterface(ODEEnvironment):
     Methods:
         set_dt: Set the time difference between steps. This also determines
             the amount of time that the torque is applied.
-        set_torques: Set the torques applied to actuators for one time step.
         set_group_pos: Sets the position of a group of bodies.
         set_group_linear_vel: Sets the linear velocity of a group of bodies.
         set_group_angular_vel: Sets the angular velocity of a group of bodies.
@@ -49,7 +48,6 @@ class EnvironmentInterface(ODEEnvironment):
             body name.
         set_body_angular_vel: Sets the angular velocity of a body given a
             body name.
-        get_joint_by_name: Returns the ODE joint object given a joint name.
         step: Step the world by 'dt' seconds.
     """
     def __init__(self, xode_filename, render=True, realtime=True,
@@ -94,6 +92,10 @@ class EnvironmentInterface(ODEEnvironment):
 
         self.get_init_body_positions()
 
+
+        actuator = actuators.JointVelocityActuator()
+        self.addActuator(actuator)
+
         return
 
     def set_dt(self, dt):
@@ -117,35 +119,6 @@ class EnvironmentInterface(ODEEnvironment):
         for (body, _) in self.body_geom:
             if body is not None:
                 self.init_body_positions[body.name] = self.get_body_pos(body.name)
-
-        return
-
-    def set_torques(self, torques):
-        """Set Joint Torques
-
-        Sets the joint torques to be applied at the next timestep. The joint
-        array *must* contain torque values for all 7 joints in the PA10 arm.
-        If no torque is applied to a joint (or a joint is not being used), set
-        the torque for the joint to 0.
-
-        Since each joint of the PA10 is a 1-axis joint, we know that each
-        joint will only have one torque value.
-
-        The order of the joints in the torques array are as follows:
-            [S1, S2, S3, E1, E2, W1, W2]
-
-        Arguments:
-            torques: A list of torques to apply to the 7 joints of the PA10.
-        """
-        # TODO: Switch this to a 7-joint system
-        assert len(torques) == 7
-
-        self.torques = np.array(torques)
-
-        # Set the actuators to each joint. Actuators are used in the
-        # ODEEnvironment superclass
-        for i, actuator in enumerate(self.actuators):
-            a._update(self.torques[i])
 
         return
 
@@ -311,52 +284,6 @@ class EnvironmentInterface(ODEEnvironment):
         """
         body = self.get_body_by_name(name)
         body.setLinearVel(tuple(vel))
-        return
-
-    def get_joint_by_name(self, name):
-        """Get Joint By Name
-
-        Finds and returns the ODE joint object given a valid joint name.
-
-        Arguments:
-            name: The name of the joint to return.
-
-        Returns:
-            The copied joint object if found, None otherwise.
-        """
-        for actuator in self.actuators:
-            if actuator.name == name:
-                return actuator._joints[0]
-
-        return
-
-    #def set_motor_axis(self, name, axes):
-    #    joint = self.get_joint_by_name(name)
-    #    # Only 1 axis will be controlled by this motor
-    #    joint.setNumAxes(1)
-    #    # Set the axis (axes vector is relative to global coordinates
-    #    joint.setAxis(0, 1, axes)
-    #    # Set the motor control to euler rotation
-    #    joint.setMode(ode.AMotorEuler)
-    #    # Zero out the joint angle at this position
-    #    joint.setAngle(0.0)
-    #    return
-
-    def set_motor_angular_vel(self, name, vel):
-        """Set Motor Velocity
-
-        Sets the euler rotational velocity of the motor in yaw-pitch-roll
-        coordinates relative to the link 1 of the motor.
-
-        Arguments:
-            name: The name of the joint to modify.
-            vel: A 1-dimensional angular velocity given in radians per second.
-
-        Returns:
-            None
-        """
-        joint = self.get_joint_by_name(name)
-        joint.setParam(ode.ParamVel, vel)
         return
 
     def step(self, paused=False):

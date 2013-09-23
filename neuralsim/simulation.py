@@ -20,6 +20,7 @@ Classes:
 import os
 import time
 import cPickle
+import numpy as np
 
 # Import application modules
 from world import NeuralSimWorld
@@ -108,15 +109,6 @@ class NeuralSimulation(object):
         # increased in order to maintain real-time constraints
         t_overshoot = 0.0
 
-        # TODO: Make joint motor actuation more easily accessible
-        #from pybrain.rl.environments.ode import actuators
-        #self.env.addActuator(actuators.SpecificJointActuator(['pa10_s1'], name='pa10_s1'))
-        #self.env.addActuator(actuators.SpecificJointActuator(['pa10_s2'], name='pa10_s2'))
-        #self.env.addActuator(actuators.SpecificJointActuator(['pa10_w1'], name='pa10_w1'))
-        #self.env.set_motor_angular_vel('pa10_s1', 0.8)
-        #self.env.set_motor_angular_vel('pa10_s2', 0.2)
-        #self.env.set_motor_angular_vel('pa10_w1', 0.2)
-
         while not stopped:
             t_start = time.time()
 
@@ -132,8 +124,21 @@ class NeuralSimulation(object):
                 self.env.step(paused=True)
                 continue
 
-            # Step through the world by 1 time frame
-            self.env.step()
+            # TODO: Sensing and actuation from neural network happens here
+
+            # Rotational velocities must be inputted to ODE in rad/s
+            pa10_joint_vels = np.deg2rad(np.array([
+                1.0, # S1 velocity [deg/s] (converted to rad/s later)
+                1.0, # S2
+                1.0, # S3
+                1.0, # E1
+                1.0, # E2
+                1.0, # W1
+                1.0, # W2
+            ]))
+
+            # Step through the world by 1 time frame and actuate pa10 joints
+            self.env.performAction(pa10_joint_vels)
             t += dt_warped
 
             # Determine the difference in virtual vs actual time
