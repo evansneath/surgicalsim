@@ -40,7 +40,7 @@ def build_end_effector(xode, y_offset):
 
     xode.insertBody(bname='tooltip', shape='sphere', size=siz_tooltip,
             density=0.0, pos=pos_tooltip, passSet=['end_effector'],
-            euler=eul_tooltip, mass=m_tooltip, color=(255, 0, 0, 255),
+            euler=eul_tooltip, mass=m_tooltip, color=(1.0, 0.0, 0.0, 1.0),
             has_gravity=False)
 
     # Define the stick properties
@@ -95,7 +95,7 @@ def build_test_article(xode, randomize=True):
     # Build the table
     xode.insertBody(bname='table', shape='box', size=siz_table,
             density=0.0, pos=pos_table, passSet=['test_article'],
-            euler=eul_table, mass=m_table, color=(0.1, 0.1, 0.1, 0.6))
+            euler=eul_table, mass=m_table, color=(0.1, 0.1, 0.1, 1.0))
 
     # Define the normalized gate height for each gate [y]
     gate_norm_height = np.ones(8)
@@ -218,7 +218,7 @@ def _build_gate(xode, num, top_table, gate_height, gate_pos, gate_rot):
     xode.insertBody(bname=marker1_name, shape='sphere',
             size=marker_size, density=0.0, pos=marker1_pos,
             passSet=['test_article'], euler=marker_eul, mass=marker_mass,
-            color=(255, 255, 255, 255)
+            color=(1.0, 1.0, 1.0, 1.0)
     )
 
     marker2_name = gate_name + '_marker2'
@@ -227,7 +227,7 @@ def _build_gate(xode, num, top_table, gate_height, gate_pos, gate_rot):
     xode.insertBody(bname=marker2_name, shape='sphere',
             size=marker_size, density=0.0, pos=marker2_pos,
             passSet=['test_article'], euler=marker_eul, mass=marker_mass,
-            color=(255, 255, 255, 255)
+            color=(1.0, 1.0, 1.0, 1.0)
     )
 
     # Build the stands which hold the markers
