@@ -390,12 +390,21 @@ def build_pa10(xode, x_offset, z_offset):
     # NOTE: All joint high/low stops are taken from section 2-7 of the PA10
     #       user manual
 
+    joint_cfm = 0.0
+    joint_erp = 0.8
+
     # Generate the S1 shoulder joint
     s1_axis = {
         'x':0, 'y':1, 'z':0,
         'FMax':200,
         'LowStop':np.deg2rad(-177),
         'HiStop':np.deg2rad(177),
+        'CFM':joint_cfm,
+        'StopCFM':joint_cfm,
+        'SuspensionCFM':joint_cfm,
+        'FudgeFactor':joint_erp,
+        'StopERP':joint_erp,
+        'SuspensionERP':joint_erp,
     }
     xode.insertJoint(
             body1='pa10_l0',
@@ -412,6 +421,12 @@ def build_pa10(xode, x_offset, z_offset):
         'FMax':200,
         'LowStop':np.deg2rad(-91),
         'HiStop':np.deg2rad(91),
+        'CFM':joint_cfm,
+        'StopCFM':joint_cfm,
+        'SuspensionCFM':joint_cfm,
+        'FudgeFactor':joint_erp,
+        'StopERP':joint_erp,
+        'SuspensionERP':joint_erp,
     }
     xode.insertJoint(
             body1='pa10_l1',
@@ -428,6 +443,12 @@ def build_pa10(xode, x_offset, z_offset):
         'FMax':200,
         'LowStop':np.deg2rad(-174),
         'HiStop':np.deg2rad(174),
+        'CFM':joint_cfm,
+        'StopCFM':joint_cfm,
+        'SuspensionCFM':joint_cfm,
+        'FudgeFactor':joint_erp,
+        'StopERP':joint_erp,
+        'SuspensionERP':joint_erp,
     }
     xode.insertJoint(
             body1='pa10_l2',
@@ -444,6 +465,12 @@ def build_pa10(xode, x_offset, z_offset):
         'FMax':200,
         'LowStop':np.deg2rad(-137),
         'HiStop':np.deg2rad(137),
+        'CFM':joint_cfm,
+        'StopCFM':joint_cfm,
+        'SuspensionCFM':joint_cfm,
+        'FudgeFactor':joint_erp,
+        'StopERP':joint_erp,
+        'SuspensionERP':joint_erp,
     }
     xode.insertJoint(
             body1='pa10_l3',
@@ -464,6 +491,12 @@ def build_pa10(xode, x_offset, z_offset):
         'FMax':200,
         'LowStop':np.deg2rad(-177),
         'HiStop':np.deg2rad(177),
+        'CFM':joint_cfm,
+        'StopCFM':joint_cfm,
+        'SuspensionCFM':joint_cfm,
+        'FudgeFactor':joint_erp,
+        'StopERP':joint_erp,
+        'SuspensionERP':joint_erp,
     }
     xode.insertJoint(
             body1='pa10_l4',
@@ -480,6 +513,12 @@ def build_pa10(xode, x_offset, z_offset):
         'FMax':200,
         'LowStop':np.deg2rad(-165),
         'HiStop':np.deg2rad(165),
+        'CFM':joint_cfm,
+        'StopCFM':joint_cfm,
+        'SuspensionCFM':joint_cfm,
+        'FudgeFactor':joint_erp,
+        'StopERP':joint_erp,
+        'SuspensionERP':joint_erp,
     }
     xode.insertJoint(
             body1='pa10_l5',
@@ -500,6 +539,12 @@ def build_pa10(xode, x_offset, z_offset):
         'FMax':200,
         'LowStop':np.deg2rad(-177),
         'HiStop':np.deg2rad(177),
+        'CFM':joint_cfm,
+        'StopCFM':joint_cfm,
+        'SuspensionCFM':joint_cfm,
+        'FudgeFactor':joint_erp,
+        'StopERP':joint_erp,
+        'SuspensionERP':joint_erp,
     }
     xode.insertJoint(
             body1='pa10_l6',

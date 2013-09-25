@@ -42,6 +42,10 @@ def parse_arguments():
             '-r', '--randomize', action='store_true',
             help='randomize test article gate placement'
     )
+    parser.add_argument(
+            '-f', '--fast', action='store_true',
+            help='use fast step function (for slower machines)'
+    )
 
     args = parser.parse_args()
 
@@ -65,7 +69,11 @@ def main():
 
         # Continue to execute the main simulation loop
         print '>>> Running... (ctrl+c to exit)'
-        sim.start()
+
+        if args.fast:
+            print '>>> Stepping fast!'
+
+        sim.start(fast_step=args.fast)
     except KeyboardInterrupt as e:
         # Except the keyboard interrupt as the valid way of leaving the loop
         print '>>> Cleaning up...'

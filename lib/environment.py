@@ -286,7 +286,7 @@ class EnvironmentInterface(ODEEnvironment):
         body.setLinearVel(tuple(vel))
         return
 
-    def step(self, paused=False):
+    def step(self, paused=False, fast=False):
         """Step World
 
         Steps the world by one timestep.
@@ -294,6 +294,10 @@ class EnvironmentInterface(ODEEnvironment):
         Arguments:
             paused: If True, the viewer will be updated, but the world time
                 will not be incremented and no torques will be applied.
+                (Default: False)
+            fast: If True, the fast step Open Dynamics Engine algorithm will
+                be used. This is quicker and requires less memory but is less
+                accurate. (Default: False)
         """
         if paused:
             # Update viewer so it receives messages, but the world remains
@@ -301,7 +305,7 @@ class EnvironmentInterface(ODEEnvironment):
             self.updateClients()
         else:
             # Step by iterating the world by 'dt' seconds
-            super(EnvironmentInterface, self).step()
+            super(EnvironmentInterface, self).step(fast=fast)
 
         return
 

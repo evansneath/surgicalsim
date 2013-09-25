@@ -30,6 +30,11 @@ from surgicalsim.lib.environment import EnvironmentInterface
 from surgicalsim.lib.viewer import ViewerInterface
 
 
+def oscillation_test(t, amp, freq):
+    y = amp * np.cos(t * freq * 2.0 * np.pi)
+    return y
+
+
 class NeuralSimulation(object):
     """NeuralSimulation class
 
@@ -88,15 +93,19 @@ class NeuralSimulation(object):
 
         return
 
-    def start(self, fps=60):
+    def start(self, fps=60, fast_step=False):
         """Start
 
         Begin the continuous event loop for the simulation. This event loop
         can be exited using the ctrl+c keyboard interrupt. Real-time
-        constraints are enforced.
+        constraints are enforced. [Hz]
 
         Arguments:
             fps: The value of frames per second of the simulation.
+                (Default: 60 [Hz])
+            fast_step: If True, the ODE fast step algorithm will be used.
+                This is faster and requires less memory but is less accurate.
+                (Default: False)
         """
         paused = False
         stopped = False
@@ -121,24 +130,30 @@ class NeuralSimulation(object):
             #viewer.update()
 
             if paused:
-                self.env.step(paused=True)
+                self.env.step(paused=True, fast=fast_step)
                 continue
 
             # TODO: Sensing and actuation from neural network happens here
 
             # Rotational velocities must be inputted to ODE in rad/s
-            pa10_joint_vels = np.deg2rad(np.array([
-                1.0, # S1 velocity [deg/s] (converted to rad/s later)
-                1.0, # S2
-                1.0, # S3
-                1.0, # E1
-                1.0, # E2
-                1.0, # W1
-                1.0, # W2
-            ]))
+            #pa10_joint_vels = np.deg2rad(np.array([
+            #    1.0, # S1 velocity [deg/s] (converted to rad/s later)
+            #    1.0, # S2
+            #    1.0, # S3
+            #    1.0, # E1
+            #    1.0, # E2
+            #    1.0, # W1
+            #    1.0, # W2
+            #]))
+
+            # Perform a simple oscillation test to test the joint position
+            # accuracy
+            amps = np.array([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+            freq = 0.25
+            pa10_joint_vels = oscillation_test(t, amps, freq)
 
             # Step through the world by 1 time frame and actuate pa10 joints
-            self.env.performAction(pa10_joint_vels)
+            self.env.performAction(pa10_joint_vels, fast=fast_step)
             t += dt_warped
 
             # Determine the difference in virtual vs actual time
