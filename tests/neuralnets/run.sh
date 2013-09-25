@@ -2,7 +2,7 @@
 
 # A shell script to run the render engine and environment
 
-SURGICAL_SIM_DIR=~/Workspace/surgical-sim/network-test
+SURGICAL_SIM_DIR=~/Workspace/surgicalsim/tests/neuralnets
 
 # Start the render engine (viewer)
 $SURGICAL_SIM_DIR/viewer.sh &
