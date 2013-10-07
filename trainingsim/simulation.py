@@ -19,12 +19,12 @@ Classes:
 # Import external modules
 import os
 import time
-import cPickle
 
 # Import application modules
 from world import TrainingSimWorld
 
 # Import surgicalsim modules
+import surgicalsim.lib.datastore as datastore
 from surgicalsim.lib.environment import EnvironmentInterface
 from surgicalsim.lib.controller import PhantomOmniInterface
 from surgicalsim.lib.viewer import ViewerInterface
@@ -184,21 +184,6 @@ class TrainingSimulation(object):
                 # The calculation took more time than the virtual time. We need
                 # to catch up with the virtual time on the next time step
                 t_overshoot = -t_warped
-
-        return
-
-    def write_data(self, outfile):
-        """Write Data
-
-        Writes all data written to the saved_data list into the specified
-        output file in a pickled format.
-
-        Arguments:
-            outfile: The relative or absolute path of the file to output the
-                pickled simulation data.
-        """
-        with open(outfile, 'w+') as f:
-            cPickle.dump(self.saved_data, f)
 
         return
 

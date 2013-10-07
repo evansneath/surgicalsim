@@ -22,6 +22,7 @@ import argparse
 
 # Import application modules
 from simulation import TrainingSimulation
+import surgicalsim.lib.datastore as datastore
 
 
 def parse_arguments():
@@ -76,9 +77,9 @@ def main():
         sim.start()
     except KeyboardInterrupt as e:
         # Except the keyboard interrupt as the valid way of leaving the loop
-        if sim is not None:
+        if sim is not None and sim.saved_data:
             print '\n>>> Writing captured data'
-            sim.write_data(args.outfile)
+            datastore.store(sim.saved_data, args.outfile)
 
         print '>>> Cleaning up...'
         del sim

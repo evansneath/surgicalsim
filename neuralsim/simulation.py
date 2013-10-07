@@ -148,7 +148,7 @@ class NeuralSimulation(object):
 
             # Perform a simple oscillation test to test the joint position
             # accuracy
-            amps = np.array([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+            amps = np.deg2rad(np.array([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
             freq = 0.25
             pa10_joint_vels = oscillation_test(t, amps, freq)
 
