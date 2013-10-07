@@ -396,7 +396,7 @@ def build_pa10(xode, x_offset, z_offset):
     # Generate the S1 shoulder joint
     s1_axis = {
         'x':0, 'y':1, 'z':0,
-        'FMax':200,
+        'FMax':2000,
         'LowStop':np.deg2rad(-177),
         'HiStop':np.deg2rad(177),
         'CFM':joint_cfm,
@@ -418,7 +418,7 @@ def build_pa10(xode, x_offset, z_offset):
     # Generate the S2 shoulder joint
     s2_axis = {
         'x':1, 'y':0, 'z':0,
-        'FMax':200,
+        'FMax':2000,
         'LowStop':np.deg2rad(-91),
         'HiStop':np.deg2rad(91),
         'CFM':joint_cfm,
@@ -440,7 +440,7 @@ def build_pa10(xode, x_offset, z_offset):
     # Generate the S3 shoulder joint
     s3_axis = {
         'x':0, 'y':1, 'z':0,
-        'FMax':200,
+        'FMax':2000,
         'LowStop':np.deg2rad(-174),
         'HiStop':np.deg2rad(174),
         'CFM':joint_cfm,
@@ -462,7 +462,7 @@ def build_pa10(xode, x_offset, z_offset):
     # Generate the E1 elbow joint
     e1_axis = {
         'x':1, 'y':0, 'z':0,
-        'FMax':200,
+        'FMax':2000,
         'LowStop':np.deg2rad(-137),
         'HiStop':np.deg2rad(137),
         'CFM':joint_cfm,
@@ -488,7 +488,7 @@ def build_pa10(xode, x_offset, z_offset):
     #       Hi/Lo stop restrictions.
     e2_axis = {
         'x':0, 'y':1, 'z':0,
-        'FMax':200,
+        'FMax':2000,
         'LowStop':np.deg2rad(-177),
         'HiStop':np.deg2rad(177),
         'CFM':joint_cfm,
@@ -510,7 +510,7 @@ def build_pa10(xode, x_offset, z_offset):
     # Generate the W1 wrist joint
     w1_axis = {
         'x':1, 'y':0, 'z':0,
-        'FMax':200,
+        'FMax':2000,
         'LowStop':np.deg2rad(-165),
         'HiStop':np.deg2rad(165),
         'CFM':joint_cfm,
@@ -536,7 +536,7 @@ def build_pa10(xode, x_offset, z_offset):
     #       Hi/Lo stop restrictions.
     w2_axis = {
         'x':0, 'y':1, 'z':0,
-        'FMax':200,
+        'FMax':2000,
         'LowStop':np.deg2rad(-177),
         'HiStop':np.deg2rad(177),
         'CFM':joint_cfm,

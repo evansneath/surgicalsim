@@ -24,7 +24,6 @@ import time
 from world import TrainingSimWorld
 
 # Import surgicalsim modules
-import surgicalsim.lib.datastore as datastore
 from surgicalsim.lib.environment import EnvironmentInterface
 from surgicalsim.lib.controller import PhantomOmniInterface
 from surgicalsim.lib.viewer import ViewerInterface
