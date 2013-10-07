@@ -49,7 +49,7 @@ class NeuralSimWorld(XODEfile):
 
         self._name = name
         self._randomize_test_article = randomize_test_article
-
+        
         return
 
     def generate(self):
