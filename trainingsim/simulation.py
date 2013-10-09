@@ -19,6 +19,7 @@ Classes:
 # Import external modules
 import os
 import time
+import numpy as np
 
 # Import application modules
 from world import TrainingSimWorld
@@ -129,6 +130,7 @@ class TrainingSimulation(object):
         stopped = False
 
         # Define the simulation frame rate
+        t = 0.0
         dt = 1.0 / float(fps) # [s]
 
         # Keep track of time overshoot in the case that simulation time must be
@@ -155,9 +157,18 @@ class TrainingSimulation(object):
             self.omni.update()
 
             # Record the positional and angular tooltip data
-            data_pack = (self.omni.get_pos().tolist(),
-                         self.omni.get_angle().tolist())
-            self.saved_data.append(data_pack)
+            sample_input = np.array([
+                t,
+            ]).flatten()
+
+            sample_output = np.array([
+                self.omni.get_pos(),
+                #self.omni.get_angle(),
+            ]).flatten()
+
+            data_sample = (sample_input, sample_output)
+
+            self.saved_data.append(data_sample)
 
             # Get the updated linear/angular velocities of the tooltip
             linear_vel = self.omni.get_linear_vel()
@@ -169,6 +180,8 @@ class TrainingSimulation(object):
 
             # Step through the world by 1 time frame
             self.env.step()
+
+            t += dt_warped
 
             # Determine the difference in virtual vs actual time
             t_warped = dt - (time.time() - t_start)

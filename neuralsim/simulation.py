@@ -19,7 +19,6 @@ Classes:
 # Import external modules
 import os
 import time
-import cPickle
 import numpy as np
 
 # Import application modules
