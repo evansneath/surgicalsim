@@ -109,9 +109,19 @@ def files_to_dataset(filenames):
 
         # Create a new sample for each input/output pair in the sequence
         for i, input in enumerate(inputs):
-            output = outputs[i]
-            #dataset.addSample(input, output)
-            dataset.addSample([], output)
+            #dataset.addSample(input, outputs[i])
+            dataset.addSample([], outputs[i])
+
+    return dataset
+
+
+def xyz_to_dataset(array):
+    dataset = SequentialDataSet(0, len(array[0]))
+    dataset.newSequence()
+
+    for output in array:
+        #dataset.addSample(input, outputs[i])
+        dataset.addSample([], output)
 
     return dataset
 

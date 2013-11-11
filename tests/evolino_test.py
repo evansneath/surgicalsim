@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+#from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 
-from surgicalsim.lib.datastore import files_to_dataset
+from surgicalsim.lib.datastore import files_to_dataset, xyz_to_dataset
 from surgicalsim.lib.network import NeuralNetwork
 
 
@@ -16,30 +17,42 @@ if __name__ == '__main__':
     for filename in filenames:
         filefullpaths.append(filepath+filename)
 
-    wtRatio = 1.0 / 4.0
+    wtRatio = 1.0 / 10.0
 
     training_dataset = files_to_dataset([filefullpaths[2]])
+
     training_sequence = training_dataset.getField('target')
+
+    # Trim up the training dataset
+    training_sequence = training_sequence[120:-55]
+
     training_wt_idx = int(len(training_sequence) * wtRatio)
     training_washout = training_sequence[:training_wt_idx]
     training_target = training_sequence[training_wt_idx:]
 
     testing_dataset = files_to_dataset([filefullpaths[2]])
     testing_sequence = testing_dataset.getField('target')
+
+    # Trim up the testing dataset
+    testing_sequence = testing_sequence[120:-55]
+
     testing_wt_idx = int(len(testing_sequence) * wtRatio) 
     testing_washout = testing_sequence[:testing_wt_idx]
     testing_target =  testing_sequence[testing_wt_idx:]
 
     print('>>> Building Network...')
-    net = NeuralNetwork(training_dataset)
+    trimmed_training_dataset = xyz_to_dataset(testing_sequence)
+    net = NeuralNetwork(trimmed_training_dataset)
 
-    # Create a matplotlib figure for plotting
-    plt.ion()
+    iterations = 100
 
-    training_counter = 0
-    stop_every_x_epochs = 1000
+    rms_errors = []
+    min_error = None
+    min_error_index = None
+    min_error_output = None
 
-    while True:
+    for idx in range(iterations):
+        print('---------- ITERATION %3d ----------' % (idx + 1))
         print('>>> Training...')
         net.train()
 
@@ -48,34 +61,57 @@ if __name__ == '__main__':
         #for i in np.arange(0.0, 10.0, 1.0/60.0):
         #    testing_dataset.addSample([], [])
 
-        #out = net.test(testing_dataset)
-        training_output = net.extrapolate(training_washout, len(training_target))
+        #training_output = net.extrapolate(training_washout, len(training_target))
         testing_output = net.extrapolate(testing_washout, len(testing_target))
-        
-        # Draw the training data plot
-        #sp = plt.subplot(211)
-        #plt.cla()
-        #plt.title('Training Data')
+       
+        # Calculate the RMS error of the testing set
+        print('>>> Calculating RMS Error...')
+        this_rms = np.sqrt(np.mean((testing_output - testing_target) ** 2))
+        rms_errors.append(this_rms)
 
-        training_xyz = zip(*testing_sequence)
-        #plt.plot(training_xyz[0], training_xyz[2], 'b--')
+        # Determine if this is the minimal error network
+        if min_error is None or min_error > this_rms:
+            # This is the minimum, record it
+            min_error = this_rms
+            min_error_index = idx
+            min_error_output = testing_output
 
-        #training_output_xyz = zip(*training_output)
-        #plt.plot(training_output_xyz[0], training_output_xyz[2], 'r-')
+    plt.figure(1, facecolor='white')
+    plt.title('Figure 1: Path planning over %d iterations' % iterations)
 
-        # Draw the testing data plot
-        sp = plt.subplot(111)
-        plt.cla()
-        plt.title('Testing Data')
+    # Draw the training data plot
+    training_xyz = zip(*training_sequence)
 
-        plt.plot(training_xyz[0], training_xyz[2], 'b--')
+    plt.subplot(121, autoscale_on=False, aspect='equal')
+    plt.cla()
+    plt.title('Training Data')
+    plt.xlabel('Position X Axis [m]')
+    plt.ylabel('Position Z Axis [m]')
+    plt.plot(training_xyz[0], -np.array(training_xyz[2]), 'b--')
 
-        testing_xyz = zip(*testing_output)
-        plt.plot(testing_xyz[0], testing_xyz[2], 'r-')
+    testing_xyz = zip(*testing_sequence)
+    output_xyz = zip(*min_error_output)
 
-        plt.draw()
+    # Draw the testing data plot
+    plt.subplot(122, autoscale_on=False, aspect='equal')
+    plt.cla()
+    plt.title('Testing Data (Minimal RMS Error)')
+    plt.xlabel('Position X Axis [m]')
+    plt.ylabel('Position Z Axis [m]')
+    plt.plot(output_xyz[0], -np.array(output_xyz[2]), 'r-')
 
-        training_counter += 1
+    # Draw the RMS error plot
+    plt.figure(2, facecolor='white')
+    plt.subplot(111)
+    plt.cla()
+    plt.title('RMS Error of RNN Training over %d Iterations' % iterations)
+    plt.xlabel('Training Iterations')
+    plt.ylabel('RMS Error [m]')
+    plt.grid(True)
+    plt.plot(range(len(rms_errors)), rms_errors, 'r--')
 
-        if training_counter % stop_every_x_epochs == 0:
-            raw_input('>>> Press <Enter> to Continue')
+    plt.annotate('local min', xy=(min_error_index, rms_errors[min_error_index]),
+            xytext=(min_error_index, rms_errors[min_error_index]+0.01),
+            arrowprops=dict(facecolor='black', shrink=0.05))
+
+    plt.show()

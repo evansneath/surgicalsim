@@ -54,7 +54,7 @@ class NeuralNetwork(object):
         self.trainer = EvolinoTrainer(
             evolino_network=self.net,
             dataset=training_data,
-            wtRatio=1.0/4.0
+            wtRatio=1.0/10.0
         )
 
         return

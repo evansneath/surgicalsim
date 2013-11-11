@@ -147,9 +147,18 @@ class NeuralSimulation(object):
 
             # Perform a simple oscillation test to test the joint position
             # accuracy
-            amps = np.deg2rad(np.array([90.0, 0.0, 90.0, 0.0, 90.0, 0.0, 0.0]))
-            freq = 1.0
-            pa10_joint_vels = oscillation_test(t, amps, freq)
+
+            if t < 10 or t > 20:
+                amps_deg = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                pa10_joint_vels = np.deg2rad(np.array(amps_deg))
+            elif 10 <= t < 15:
+                amps_deg = [45.0, 0.0, 45.0, 0.0, 45.0, 0.0, 0.0]
+                amps = np.deg2rad(np.array(amps_deg))
+                freq = 0.5
+                pa10_joint_vels = oscillation_test(t, amps, freq)
+            elif 15 <= t < 20:
+                amps_deg = [0.0, 45.0/5.0, 0.0, 45.0/5.0, 0.0, 90.0/5.0, 0.0]
+                pa10_joint_vels = np.deg2rad(np.array(amps_deg))
 
             # Step through the world by 1 time frame and actuate pa10 joints
             self.env.performAction(pa10_joint_vels, fast=fast_step)
