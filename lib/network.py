@@ -48,7 +48,7 @@ class NeuralNetwork(object):
         self.out_dim = training_data.outdim
 
         # Create neural network
-        self.net = EvolinoNetwork(self.out_dim, hiddim=self.hid_dim)
+        self.net = EvolinoNetwork(self.in_dim, self.out_dim, hiddim=self.hid_dim)
 
         # Create trainer
         self.trainer = EvolinoTrainer(

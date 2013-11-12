@@ -16,6 +16,8 @@ Functions:
     files_to_dataset: Given a list of files containing pickled input and output
         data from the TrainingSim application, a new SequentialDataSet class
         object is returned.
+    list_to_dataset: Converts a input/output sequence pair into a
+        SequentialDataSet class object.
 """
 
 
@@ -96,32 +98,53 @@ def files_to_dataset(filenames):
         # Unpack the Python object data into inputs/outputs
         inputs, outputs = split_data(raw_data)
 
-        # The dataset object has not been initialized. We must determine the
-        # input and output size based on the unpacked data
-        if dataset is None:
-            dataset = SequentialDataSet(
-                0,#len(inputs[0]),
-                len(outputs[0])
-            )
-
-        # Create a new sequence of data for this file
-        dataset.newSequence()
-
-        # Create a new sample for each input/output pair in the sequence
-        for i, input in enumerate(inputs):
-            #dataset.addSample(input, outputs[i])
-            dataset.addSample([], outputs[i])
+        dataset = list_to_dataset(inputs, outputs, dataset)
 
     return dataset
 
 
-def xyz_to_dataset(array):
-    dataset = SequentialDataSet(0, len(array[0]))
+def list_to_dataset(inputs, outputs, dataset=None):
+    """List to Dataset
+
+    Convert a standard list to a dataset. The list must be given in the
+    following format:
+
+        Inputs: 2 dimension list (N x M)
+        Outputs: 2 dimension list (N x K)
+
+        N: Number of time steps in data series
+        M: Number of inputs per time step
+        K: Number of outputs per time step
+
+    Arguments:
+        inputs: The input list given under the above conditions.
+        outputs: The output list given under the above conditions.
+        dataset: A SequentialDataSet object to add a new sequence. New dataset
+            generated if None. (Default: None)
+
+    Returns:
+        A SequentialDataSet object built from the retrieved input/output data.
+    """
+    assert inputs
+    assert outputs
+    assert len(inputs) == len(outputs)
+
+    # The dataset object has not been initialized. We must determine the
+    # input and output size based on the unpacked data
+    num_samples = len(inputs)
+    in_dim = len(inputs[0])
+    out_dim = len(outputs[0])
+
+    # If the dataset does not exist, create it. Otherwise, use the dataset
+    # given
+    if not dataset:
+        dataset = SequentialDataSet(in_dim, out_dim)
+
+    # Make a new sequence for the given input/output pair
     dataset.newSequence()
 
-    for output in array:
-        #dataset.addSample(input, outputs[i])
-        dataset.addSample([], output)
+    for i in range(num_samples):
+        dataset.addSample(inputs[i], outputs[i])
 
     return dataset
 
