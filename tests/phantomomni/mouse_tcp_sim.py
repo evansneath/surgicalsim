@@ -59,10 +59,10 @@ def main():
     # outputs are limited between 0 and 1.
 
     # Limit the movement of the cursor to the environment table for now
-    x_scale = 0.5
+    x_scale = 0.7
     y_scale = 1.0
     # Negate to flip the z axis in order to move relative to camera position
-    z_scale = -0.5
+    z_scale = -0.7
 
     # Attempt to connect to the TCP server
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

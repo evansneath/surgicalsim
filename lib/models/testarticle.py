@@ -28,7 +28,8 @@ def build_end_effector(xode, y_offset):
         y_offset: The top of the table under the end effector. This is
             used to calculate relative positions to the test article.
     """
-    y_pos_end_effector = y_offset + 0.1
+    # Determine position of the end effector (0.02 is half of gate width)
+    y_pos_end_effector = y_offset + 0.1 - 0.02
 
     # Define the tooltip properties
     m_tooltip = 10.0 # [g]
@@ -297,8 +298,25 @@ def _build_gate(xode, num, top_table, gate_height, gate_pos, gate_rot):
             passSet=['test_article'], euler=base_eul, mass=base_mass
     )
 
+    hitbox_name = gate_name
+    hitbox_mass = 0.5 # [g]
+    hitbox_size = np.array([
+         gate_width,
+         gate_height - base_size[1] - support_size[1],
+         0.001,
+    ])
+    hitbox_pos = gate_full_pos - np.array([0.0, stand_size[1]/2.0, 0.0])
+    hitbox_eul = np.array([0.0, gate_rot*180/np.pi, 0.0])
+
+    xode.insertBody(bname=hitbox_name, shape='box',
+            size=hitbox_size, density=0.0, pos=hitbox_pos,
+            passSet=['end_effector', 'test_article'], euler=hitbox_eul,
+            mass=hitbox_mass, invisible=True
+    )
+
     # Create fixed joints between all parts of the gate. This makes it
     # a single body
+    xode.insertJoint(hitbox_name, 'table', type='fixed')
     xode.insertJoint(support_name, base_name, type='fixed')
     xode.insertJoint(stand1_name, support_name, type='fixed')
     xode.insertJoint(stand2_name, support_name, type='fixed')

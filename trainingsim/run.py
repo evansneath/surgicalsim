@@ -77,7 +77,7 @@ def main():
         sim.start()
     except KeyboardInterrupt as e:
         # Except the keyboard interrupt as the valid way of leaving the loop
-        if sim is not None and sim.saved_data:
+        if sim is not None and len(sim.saved_data):
             print '\n>>> Writing captured data'
             datastore.store(sim.saved_data, args.outfile)
 

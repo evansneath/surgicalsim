@@ -11,7 +11,7 @@ from surgicalsim.lib.network import NeuralNetwork
 if __name__ == '__main__':
     # Build up the list of files to use as training set
     filepath = '/Users/evan/Workspace/surgicalsim/results/'
-    filenames = ['out1.dat', 'out2.dat', 'out3.dat']
+    filenames = ['out1_trimmed.dat', 'out2.dat', 'out3.dat']
     filefullpaths = []
 
     for filename in filenames:

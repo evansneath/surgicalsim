@@ -22,7 +22,7 @@ Functions:
 
 
 # Import external modules
-import cPickle
+import numpy as np
 
 # Import pybrain sequential data module
 from pybrain.datasets.sequential import SequentialDataSet
@@ -39,7 +39,7 @@ def store(data, filename):
             If the given file does not exist, it is created.
     """
     with open(filename, 'w+') as f:
-        cPickle.dump(data, f)
+        np.save(f, data)
 
     return
 
@@ -55,24 +55,30 @@ def retrieve(filename):
     Returns:
         The unpickled Python object.
     """
-    with open(filename, 'r') as f:
-        data = cPickle.load(f)
-
+    data = np.load(filename)
     return data
 
 
-def split_data(raw_data):
-    inputs = []
-    outputs = []
+def split_data(time_data, num_inputs):
+    """Split Data
 
-    for sample in raw_data:
-        inputs.append(sample[0])
-        outputs.append(sample[1])
+    Splits time sequence data of input, output into separated, transposed
+    arrays.
 
-    return inputs, outputs
+    Arguments:
+        time_data: The raw time sequence array of input, output data.
+        num_inputs: The number of input fields present in each time step of
+            the array.
+
+    Returns:
+        (input_data, output_data) - Two arrays of the input and output data
+        organized in [dim x time] format (transposed from original).
+    """
+    # Split the array depending on the numbers of inputs
+    return time_data[:, :num_inputs].T, time_data[:, num_inputs:].T
 
 
-def files_to_dataset(filenames):
+def files_to_dataset(filenames, num_inputs, dataset=None):
     """Files to Dataset
 
     Given a list of filenames containing raw training data, the filenames
@@ -85,18 +91,20 @@ def files_to_dataset(filenames):
             [([input1, input2, ...], [output1, output2, ...]), ...]
             where each tuple represents a single sample containing a set of
             flat input and flat output arrays.
+        num_inputs: The number of inputs prepending the outputs for each time
+            step.
+        dataset: A SequentialDataSet object to add a new sequence. New dataset
+            generated if None. (Default: None)
 
     Returns:
         A SequentialDataSet object built from the retrieved input/output data.
     """
-    dataset = None
-
     for filename in filenames:
         # Get all Python object data from the pickled file
-        raw_data = retrieve(filename)
+        data = retrieve(filename)
 
         # Unpack the Python object data into inputs/outputs
-        inputs, outputs = split_data(raw_data)
+        inputs, outputs = split_data(data, num_inputs)
 
         dataset = list_to_dataset(inputs, outputs, dataset)
 

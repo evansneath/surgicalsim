@@ -51,6 +51,17 @@ class TrainingSimulation(object):
     viewer = None
     saved_data = None
 
+    gate_names = [
+        'gate0',
+        'gate1',
+        'gate2',
+        'gate3',
+        'gate4',
+        'gate5',
+        'gate6',
+        'gate7',
+    ]
+
     def __init__(self, randomize=False, network=False, verbose=False):
         """Initialize
 
@@ -111,8 +122,7 @@ class TrainingSimulation(object):
         # Try to connect to the Phantom Omni controller
         self.omni.connect(ip, port)
 
-        # Initialize the tooltip data list
-        self.saved_data = []
+        self.saved_data = np.array([])
 
         return
 
@@ -156,19 +166,27 @@ class TrainingSimulation(object):
             # Populate the controller with the most up-to-date data
             self.omni.update()
 
-            # Record the positional and angular tooltip data
+            # Determine the input data to record
             sample_input = np.array([
                 t,
             ]).flatten()
 
+            # Capture the gate position at each time step
+            for gate_name in self.gate_names:
+                gate_pos = np.array(self.env.get_body_pos(gate_name)).flatten()
+                sample_input = np.concatenate((sample_input, gate_pos))
+
+            # Determine the output data to record
             sample_output = np.array([
-                self.omni.get_pos(),
+                self.env.get_body_pos('tooltip'),
                 #self.omni.get_angle(),
             ]).flatten()
 
-            data_sample = (sample_input, sample_output)
+            # Join the sample input/output
+            data_sample = np.concatenate((sample_input, sample_output), axis=0)
 
-            self.saved_data.append(data_sample)
+            # Save the data
+            self.save_data(data_sample)
 
             # Get the updated linear/angular velocities of the tooltip
             linear_vel = self.omni.get_linear_vel()
@@ -199,12 +217,31 @@ class TrainingSimulation(object):
 
         return
 
+
+    def save_data(self, data_sample):
+        """Save Data
+
+        Saves a sample of data into the simulation's saved data array.
+
+        Arguments:
+            data_sample: A sample of input/output data from a single time step.
+        """
+        if len(self.saved_data):
+            self.saved_data = np.vstack((self.saved_data, data_sample))
+        else:
+            self.saved_data = np.concatenate((self.saved_data, data_sample))
+
+        return
+
+
     def __del__(self):
         """Delete (del)
 
         Attempts to shut down any active engines and kills off spawned
         class objects.
         """
+        print self.saved_data
+
         # Kill the OpenGL viewer process
         if self.viewer is not None:
             self.viewer.stop()
