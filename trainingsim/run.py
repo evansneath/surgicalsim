@@ -22,6 +22,9 @@ import argparse
 
 # Import application modules
 from simulation import TrainingSimulation
+
+import surgicalsim.lib.constants as constants
+import surgicalsim.lib.pathutils as pathutils
 import surgicalsim.lib.datastore as datastore
 
 
@@ -57,6 +60,28 @@ def parse_arguments():
     return args
 
 
+def process_path(data):
+    """Process Path
+
+    Given raw data from TrainingSim, the trimmming wizard prompts the user to
+    modify the start/end of the path. The time dimension of the path is then
+    normalized.
+
+    Arguments:
+        data: Raw numpy data array from the TrainingSim application.
+
+    Returns:
+        Processed numpy data array that is trimmed and time-normalized.
+    """
+    # Prompt the user to trim the start and end of the path
+    data = pathutils.trim_path(data)
+
+    # Normalize the time dimension of the data between 0.0 and 1.0
+    data = pathutils.normalize_time(data, t_col=constants.G_TIME_COL)
+
+    return data
+
+
 def main():
     """Main
 
@@ -78,8 +103,11 @@ def main():
     except KeyboardInterrupt as e:
         # Except the keyboard interrupt as the valid way of leaving the loop
         if sim is not None and len(sim.saved_data):
-            print '\n>>> Writing captured data'
-            datastore.store(sim.saved_data, args.outfile)
+            print '\n>>> Processing path data...'
+            path = process_path(sim.saved_data)
+
+            print '\n>>> Writing path data to %s' % args.outfile
+            datastore.store(path, args.outfile)
 
         print '>>> Cleaning up...'
         del sim

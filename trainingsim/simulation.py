@@ -240,8 +240,6 @@ class TrainingSimulation(object):
         Attempts to shut down any active engines and kills off spawned
         class objects.
         """
-        print self.saved_data
-
         # Kill the OpenGL viewer process
         if self.viewer is not None:
             self.viewer.stop()
