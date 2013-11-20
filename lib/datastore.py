@@ -75,7 +75,7 @@ def split_data(time_data, num_inputs):
         organized in [dim x time] format (transposed from original).
     """
     # Split the array depending on the numbers of inputs
-    return time_data[:, :num_inputs].T, time_data[:, num_inputs:].T
+    return time_data[:, :num_inputs], time_data[:, num_inputs:]
 
 
 def files_to_dataset(filenames, num_inputs, dataset=None):
@@ -133,8 +133,8 @@ def list_to_dataset(inputs, outputs, dataset=None):
     Returns:
         A SequentialDataSet object built from the retrieved input/output data.
     """
-    assert inputs
-    assert outputs
+    assert len(inputs) > 0
+    assert len(outputs) > 0
     assert len(inputs) == len(outputs)
 
     # The dataset object has not been initialized. We must determine the
