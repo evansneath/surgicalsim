@@ -46,6 +46,8 @@ def display_path(axis, path, trim1=None, trim2=None, title='End Effector Path'):
         trim2: The time sequence array of the path to trim. (Default: None)
         title: The title of the plot
     """
+    assert len(path) > 0
+
     axis.clear()
     
     axis.set_title(title)
@@ -60,46 +62,43 @@ def display_path(axis, path, trim1=None, trim2=None, title='End Effector Path'):
     axis.grid(True)
 
     # Transpose this data from (step X dim) to (dim X step)
-    if path is not None and len(path) > 0:
-        path_in, path_out = datastore.split_data(path,
-                constants.G_TOTAL_INPUTS)
+    path_in, path_out = datastore.split_data(path, constants.G_TOTAL_INPUTS)
 
-        axis.plot(path_out[0], path_out[1], -path_out[2],
-                'b-', zdir='y')
+    axis.plot(path_out[:,0], path_out[:,1], -path_out[:,2], 'b-', zdir='y')
 
-        for gate in range(constants.G_NUM_GATES):
-            start = 1 + (gate * constants.G_GATE_DIMS)
-            end = start + constants.G_GATE_DIMS
-            gate_pos = path_in[start:end]
-            axis.plot(gate_pos[0], gate_pos[1], -gate_pos[2], color='black',
-                    marker='+', zdir='y')
+    for gate in range(constants.G_NUM_GATES):
+        start = 1 + (gate * constants.G_GATE_DIMS)
+        end = start + constants.G_GATE_DIMS
+        gate_pos = path_in[:,start:end]
+        axis.plot(gate_pos[:,0], gate_pos[:,1], -gate_pos[:,2], color='black',
+                marker='+', zdir='y')
 
     if trim1 is not None and len(trim1) > 0:
         trim1_in, trim1_out = datastore.split_data(trim1,
                 constants.G_TOTAL_INPUTS)
 
-        axis.plot(trim1_out[0], trim1_out[1], -trim1_out[2],
+        axis.plot(trim1_out[:,0], trim1_out[:,1], -trim1_out[:,2],
                 'r--', zdir='y')
 
         for gate in range(constants.G_NUM_GATES):
             start = 1 + (gate * constants.G_GATE_DIMS)
             end = start + constants.G_GATE_DIMS
-            gate_pos = trim1_in[start:end]
-            axis.plot(gate_pos[0], gate_pos[1], -gate_pos[2], color='black',
+            gate_pos = trim1_in[:,start:end]
+            axis.plot(gate_pos[:,0], gate_pos[:,1], -gate_pos[:,2], color='black',
                     marker='+', zdir='y')
 
     if trim2 is not None and len(trim2) > 0:
         trim2_in, trim2_out = datastore.split_data(trim2,
                 constants.G_TOTAL_INPUTS)
 
-        axis.plot(trim2_out[0], trim2_out[1], -trim2_out[2],
+        axis.plot(trim2_out[:,0], trim2_out[:,1], -trim2_out[:,2],
                 'r--', zdir='y')
 
         for gate in range(constants.G_NUM_GATES):
             start = 1 + (gate * constants.G_GATE_DIMS)
             end = start + constants.G_GATE_DIMS
-            gate_pos = trim2_in[start:end]
-            axis.plot(gate_pos[0], gate_pos[1], -gate_pos[2], color='black',
+            gate_pos = trim2_in[:,start:end]
+            axis.plot(gate_pos[:,0], gate_pos[:,1], -gate_pos[:,2], color='black',
                     marker='+', zdir='y')
 
     return
@@ -224,6 +223,14 @@ def trim_path(path):
 
 
 if __name__ == '__main__':
+    """Main
+
+    If the module is directly called, the given file will be converted to
+    a path dataset and plotted.
+
+    Usage:
+        ./path_trimmer.py <path_filename>
+    """
     import sys
 
     if len(sys.argv) > 1:
@@ -235,11 +242,12 @@ if __name__ == '__main__':
 
     path = datastore.retrieve(in_file)
 
-    path = trim_path(path)
-    path = normalize_time(path)
+    # Plot the inputted path
+    fig = plt.figure(facecolor='white')
+    axis = fig.gca(projection='3d')
 
-    # Store the reconstituted data
-    filename = raw_input('Enter filename to save trimmed path: ')
-    datastore.store(path, filename)
+    display_path(axis, path, title='Training Path')
+
+    plt.show()
 
     exit()
