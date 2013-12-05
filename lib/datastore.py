@@ -140,8 +140,9 @@ def list_to_dataset(inputs, outputs, dataset=None):
     # The dataset object has not been initialized. We must determine the
     # input and output size based on the unpacked data
     num_samples = len(inputs)
-    in_dim = len(inputs[0])
-    out_dim = len(outputs[0])
+
+    in_dim = 1 if len(inputs.shape) == 1 else inputs.shape[1]
+    out_dim = 1 if len(outputs.shape) == 1 else outputs.shape[1]
 
     # If the dataset does not exist, create it. Otherwise, use the dataset
     # given

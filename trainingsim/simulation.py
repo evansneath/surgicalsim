@@ -183,7 +183,8 @@ class TrainingSimulation(object):
             ]).flatten()
 
             # Join the sample input/output
-            data_sample = np.concatenate((sample_input, sample_output), axis=0)
+            #data_sample = np.concatenate((sample_input, sample_output), axis=0)
+            data_sample = sample_output
 
             # Save the data
             self.save_data(data_sample)
@@ -217,7 +218,6 @@ class TrainingSimulation(object):
 
         return
 
-
     def save_data(self, data_sample):
         """Save Data
 
@@ -229,10 +229,9 @@ class TrainingSimulation(object):
         if len(self.saved_data):
             self.saved_data = np.vstack((self.saved_data, data_sample))
         else:
-            self.saved_data = np.concatenate((self.saved_data, data_sample))
+            self.saved_data = data_sample.copy()
 
         return
-
 
     def __del__(self):
         """Delete (del)

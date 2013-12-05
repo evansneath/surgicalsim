@@ -69,37 +69,25 @@ def display_path(axis, path, trim1=None, trim2=None, title='End Effector Path'):
     for gate in range(constants.G_NUM_GATES):
         start = 1 + (gate * constants.G_GATE_DIMS)
         end = start + constants.G_GATE_DIMS
+
         gate_pos = path_in[:,start:end]
-        axis.plot(gate_pos[:,0], gate_pos[:,1], -gate_pos[:,2], color='black',
+
+        axis.plot(gate_pos[:1,0], gate_pos[:1,1], -gate_pos[:1,2], color='black',
                 marker='+', zdir='y')
 
     if trim1 is not None and len(trim1) > 0:
-        trim1_in, trim1_out = datastore.split_data(trim1,
+        _, trim1_path = datastore.split_data(trim1,
                 constants.G_TOTAL_INPUTS)
 
-        axis.plot(trim1_out[:,0], trim1_out[:,1], -trim1_out[:,2],
+        axis.plot(trim1_path[:,0], trim1_path[:,1], -trim1_path[:,2],
                 'r--', zdir='y')
-
-        for gate in range(constants.G_NUM_GATES):
-            start = 1 + (gate * constants.G_GATE_DIMS)
-            end = start + constants.G_GATE_DIMS
-            gate_pos = trim1_in[:,start:end]
-            axis.plot(gate_pos[:,0], gate_pos[:,1], -gate_pos[:,2], color='black',
-                    marker='+', zdir='y')
 
     if trim2 is not None and len(trim2) > 0:
-        trim2_in, trim2_out = datastore.split_data(trim2,
+        _, trim2_path = datastore.split_data(trim2,
                 constants.G_TOTAL_INPUTS)
 
-        axis.plot(trim2_out[:,0], trim2_out[:,1], -trim2_out[:,2],
+        axis.plot(trim2_path[:,0], trim2_path[:,1], -trim2_path[:,2],
                 'r--', zdir='y')
-
-        for gate in range(constants.G_NUM_GATES):
-            start = 1 + (gate * constants.G_GATE_DIMS)
-            end = start + constants.G_GATE_DIMS
-            gate_pos = trim2_in[:,start:end]
-            axis.plot(gate_pos[:,0], gate_pos[:,1], -gate_pos[:,2], color='black',
-                    marker='+', zdir='y')
 
     return
 

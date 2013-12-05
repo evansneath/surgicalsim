@@ -147,9 +147,9 @@ def build_test_article(xode, randomize=True):
 
     if randomize:
         # Randomize gate height, position, rotation
-        height_rand_limit = 0.04 # [m]
-        pos_rand_limit = 0.03 # [m]
-        rot_rand_limit = 20.0 * (np.pi / 180.0) # [rad]
+        height_rand_limit = 0.0 # [m]
+        pos_rand_limit = 0.025 # [m]
+        rot_rand_limit = np.deg2rad(0.0) # [rad]
 
         # Find the random offsets for each gate's attributes
         height_rand = height_rand_limit * ((np.random.rand(8) - 0.5) * 2.0)

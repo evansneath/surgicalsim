@@ -13,6 +13,7 @@ License:
 
 Functions:
     parse_arguments: Parses incoming command line arguments.
+    process_path: Trims and normalizes input path data.
     main: Initializes all objects and begins the main event loop.
 """
 

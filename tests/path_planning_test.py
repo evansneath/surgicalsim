@@ -13,38 +13,60 @@ import surgicalsim.lib.network as network
 if __name__ == '__main__':
     # Build up the list of files to use as training set
     filepath = '/Users/evan/Workspace/surgicalsim/results/'
-    training_filenames = ['sample1.dat', 'sample2.dat']
-    testing_filename = 'sample3.dat'
+
+    training_filenames = [
+        'staticgates/sample1.dat',
+        'staticgates/sample2.dat',
+        'staticgates/sample3.dat',
+
+        #'randomgates/sample1.dat',
+        #'randomgates/sample2.dat',
+        #'randgates/sample3.dat',
+    ]
+
+    static_testing_filename = 'staticgates/sample4.dat'
+    #random_testing_filename = 'randomgates/sample4.dat'
 
     # Get the training data and place it into a dataset
     training_dataset = None
 
-    for filename in training_filenames:
-        file = filepath + filename
+    for training_filename in training_filenames:
+        training_file = filepath + training_filename
+        training_data = datastore.retrieve(training_file)
 
-        training_dataset = datastore.files_to_dataset(
-            [file],
-            constants.G_TOTAL_INPUTS,
+        training_dataset = datastore.list_to_dataset(
+            training_data[:,:constants.G_LT_INPUTS],
+            training_data[:,constants.G_TOTAL_INPUTS:],
             dataset=training_dataset
         )
 
-    # Get testing data and strip it out any output
-    testing_file = filepath + testing_filename
+    # Get testing data
+    static_testing_file = filepath + static_testing_filename
+    static_testing_data = datastore.retrieve(static_testing_file)
 
-    testing_dataset = datastore.files_to_dataset(
-        [testing_file],
-        constants.G_TOTAL_INPUTS,
+    static_testing_dataset = datastore.list_to_dataset(
+        static_testing_data[:,:constants.G_LT_INPUTS],
+        static_testing_data[:,constants.G_TOTAL_INPUTS:],
         dataset=None
     )
 
+    #random_testing_file = filepath + random_testing_filename
+    #random_testing_data = datastore.retrieve(random_testing_file)
+
+    #random_testing_dataset = datastore.list_to_dataset(
+    #    random_testing_data[:,:constants.G_LT_INPUTS],
+    #    random_testing_data[:,constants.G_TOTAL_INPUTS:],
+    #    dataset=None
+    #)
+
     NUM_TRAINING_ITERATIONS = 100
-    NUM_HIDDEN_NODES = 40
-    WASHOUT_RATIO = 1.0 / 10.0
+    NUM_HIDDEN_NODES = 100
+    WASHOUT_RATIO = 1.0 / 100.0
 
     print('>>> Building Network...')
     net = network.PathPlanningNetwork(
-        indim=constants.G_TOTAL_INPUTS,
-        outdim=constants.G_TOTAL_OUTPUTS,
+        indim=constants.G_LT_INPUTS,
+        outdim=constants.G_LT_OUTPUTS,
         hiddim=NUM_HIDDEN_NODES
     )
 
@@ -61,8 +83,11 @@ if __name__ == '__main__':
     max_fitness_epoch = None
 
     # Draw the generated path plot
-    fig = plt.figure(facecolor='white')
-    testing_axis = fig.gca(projection='3d')
+    fig = plt.figure(1, facecolor='white')
+    static_testing_axis = fig.add_subplot(111, projection='3d')
+    #random_testing_axis = fig.add_subplot(122, projection='3d')
+
+    fig.show()
 
     for idx in range(NUM_TRAINING_ITERATIONS):
         print('>>> Training (Iteration: %3d)...' % (idx+1))
@@ -73,20 +98,36 @@ if __name__ == '__main__':
         fitness_list.append(current_fitness)
 
         # Determine if this is the minimal error network
-        if max_fitness is None or max_fitness > current_fitness:
+        if max_fitness is None or max_fitness < current_fitness:
             # This is the minimum, record it
             max_fitness = current_fitness
             max_fitness_epoch = idx
 
         # Draw the generated path after training
-        print('>>> Testing...')
-        generated_input, generated_output, _ = net.calculateOutput(testing_dataset,
+        print('>>> Testing Static Path...')
+        _, generated_output, _ = net.calculateOutput(static_testing_dataset,
                 washout_ratio=WASHOUT_RATIO)
 
-        # Smash together the input and output
-        generated_path = np.hstack((generated_input, generated_output))
+        generated_input = static_testing_data[:len(generated_output),:constants.G_TOTAL_INPUTS]
 
-        pathutils.display_path(testing_axis, generated_path, title='Generated Path')
+        # Smash together the input and output
+        generated_data = np.hstack((generated_input, generated_output))
+
+        print('>>> Drawing Generated Static Path...')
+        pathutils.display_path(static_testing_axis, generated_data, static_testing_data, title='Generated Static Path')
+
+        #print('>>> Testing Random Path...')
+        #_, generated_output, _ = net.calculateOutput(random_testing_dataset,
+        #        washout_ratio=WASHOUT_RATIO)
+
+        #generated_input = random_testing_data[:len(generated_output),:constants.G_TOTAL_INPUTS]
+
+        ## Smash together the input and output
+        #generated_data = np.hstack((generated_input, generated_output))
+
+        #print('>>> Drawing Generated Random Path...')
+        #pathutils.display_path(random_testing_axis, generated_data, random_testing_data, title='Generated Random Path')
+        
         plt.draw()
 
     # Draw the iteration fitness plot
@@ -99,7 +140,7 @@ if __name__ == '__main__':
 
     plt.plot(range(len(fitness_list)), fitness_list, 'r-')
 
-    plt.annotate('local min', xy=(max_fitness_epoch, fitness_list[max_fitness_epoch]),
+    plt.annotate('local max', xy=(max_fitness_epoch, fitness_list[max_fitness_epoch]),
             xytext=(max_fitness_epoch, fitness_list[max_fitness_epoch]+0.01),
             arrowprops=dict(facecolor='black', shrink=0.05))
 
