@@ -20,6 +20,8 @@ Functions:
 
 import numpy as np
 import matplotlib.pyplot as plt
+
+from scipy.spatial.distance import cdist
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.widgets import Slider, Button
 
@@ -61,30 +63,33 @@ def display_path(axis, path, trim1=None, trim2=None, title='End Effector Path'):
 
     axis.grid(True)
 
-    # Transpose this data from (step X dim) to (dim X step)
-    path_in, path_out = datastore.split_data(path, constants.G_TOTAL_INPUTS)
+    # Split the data into more managable input and output arrays
+    path_in, path_out = datastore.split_data(path, constants.G_TOTAL_NUM_INPUTS)
 
+    # Print the main tooltip path
     axis.plot(path_out[:,0], path_out[:,1], -path_out[:,2], 'b-', zdir='y')
 
+    # Print the static gate position
     for gate in range(constants.G_NUM_GATES):
-        start = 1 + (gate * constants.G_GATE_DIMS)
-        end = start + constants.G_GATE_DIMS
+        start = 1 + (gate * constants.G_NUM_GATE_DIMS)
+        end = start + constants.G_NUM_GATE_DIMS
 
         gate_pos = path_in[:,start:end]
 
         axis.plot(gate_pos[:1,0], gate_pos[:1,1], -gate_pos[:1,2], color='black',
                 marker='+', zdir='y')
 
+    # Print any other paths
     if trim1 is not None and len(trim1) > 0:
         _, trim1_path = datastore.split_data(trim1,
-                constants.G_TOTAL_INPUTS)
+                constants.G_TOTAL_NUM_INPUTS)
 
         axis.plot(trim1_path[:,0], trim1_path[:,1], -trim1_path[:,2],
                 'r--', zdir='y')
 
     if trim2 is not None and len(trim2) > 0:
         _, trim2_path = datastore.split_data(trim2,
-                constants.G_TOTAL_INPUTS)
+                constants.G_TOTAL_NUM_INPUTS)
 
         axis.plot(trim2_path[:,0], trim2_path[:,1], -trim2_path[:,2],
                 'r--', zdir='y')
@@ -208,6 +213,122 @@ def trim_path(path):
         path = path[__g_start_trim_index:__g_end_trim_index]
 
     return path
+
+
+def _detect_segments(data):
+    """Detect Segments
+
+    Using the minimum point from the gate, this function provides a simple way
+    to break the path into segments without manual segment selection. Note that
+    in practice, segments will be manually determined for rating.
+
+    Arguments:
+        data: The path data from TrainingSim.
+
+    Returns:
+        A list of segment end indices for each gate.
+    """
+
+    segment_ends = []
+
+    # Detect a segment for each gate
+    for cur_gate in xrange(constants.G_NUM_GATES):
+        # The last segment should contain the end at the last index
+        if cur_gate == constants.G_NUM_GATES - 1:
+            segment_ends.append(data.shape[0])
+            continue
+
+        cur_gate_start = constants.G_GATE_IDX + (cur_gate * 3)
+        cur_gate_end = cur_gate_start + constants.G_NUM_GATE_DIMS
+
+        # Calculate distance
+        dist = cdist(
+            data[:,constants.G_POS_IDX:],
+            data[:,cur_gate_start:cur_gate_end],
+            metric='euclidean'
+        )[:,0]
+
+        # Find the minimum distance
+        closest_epoch = np.argmin(dist, axis=0)
+
+        # Add the closest point to a list
+        segment_ends.append(closest_epoch)
+
+    return segment_ends
+
+
+def rate_segments(data):
+    """Rate Segments
+
+    Given the full path data, the path segments between gates are
+    determined and plotted. The user is then prompted to enter the
+    the rating for each segment.
+
+    Arguments:
+        data: The path data from TrainingSim.
+
+    Returns:
+        The path data with user-defined segment ratings added.
+    """
+    ratings = None
+
+    # Get the segment ends for easy rating
+    segment_ends = _detect_segments(data)
+
+    # The first segment will always start at 0th index
+    segment_start = 0
+
+    fig = plt.figure(facecolor='white')
+    axis = fig.gca(projection='3d')
+
+    fig.show()
+
+    for idx, segment_end in enumerate(segment_ends):
+        # Clear the axis so new data can be displayed
+        axis.clear()
+
+        # Display the current segment
+        display_path(
+            axis,
+            data[segment_start:segment_end],
+            trim1=data[:segment_start],
+            trim2=data[segment_end:],
+            title=('Segment %d'%(idx+1))
+        )
+
+        # Draw the current segment on the figure
+        plt.draw()
+
+        while True:
+            rating = raw_input('Enter segment %d rating (0.0 to 1.0): '%(idx+1))
+
+            try:
+                rating = float(rating)
+            except ValueError:
+                print('Invalid input. (0.0 to 1.0)')
+                continue
+
+            if rating < 0.0 or rating > 1.0:
+                print('Invalid input. (0.0 to 1.0)')
+                continue
+
+            # Create the rating for each epoch in the segment
+            segment_rating = rating * np.ones((segment_end-segment_start, 1))
+
+            if ratings is None:
+                ratings = segment_rating
+            else:
+                ratings = np.vstack((ratings, segment_rating))
+
+            break
+
+        # Move next start index to current end index
+        segment_start = segment_end
+
+    # Smash the ratings on to the end column of the data matrix
+    data = np.hstack((data, ratings))
+
+    return data
 
 
 if __name__ == '__main__':

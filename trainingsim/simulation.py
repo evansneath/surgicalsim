@@ -52,14 +52,14 @@ class TrainingSimulation(object):
     saved_data = None
 
     gate_names = [
-        'gate0',
-        'gate1',
-        'gate2',
-        'gate3',
         'gate4',
-        'gate5',
-        'gate6',
+        'gate3',
+        'gate2',
+        'gate1',
+        'gate0',
         'gate7',
+        'gate6',
+        'gate5',
     ]
 
     def __init__(self, randomize=False, network=False, verbose=False):
@@ -174,7 +174,7 @@ class TrainingSimulation(object):
             # Capture the gate position at each time step
             for gate_name in self.gate_names:
                 gate_pos = np.array(self.env.get_body_pos(gate_name)).flatten()
-                sample_input = np.concatenate((sample_input, gate_pos))
+                sample_input = np.hstack((sample_input, gate_pos))
 
             # Determine the output data to record
             sample_output = np.array([
@@ -184,7 +184,7 @@ class TrainingSimulation(object):
 
             # Join the sample input/output
             #data_sample = np.concatenate((sample_input, sample_output), axis=0)
-            data_sample = sample_output
+            data_sample = np.hstack((sample_input, sample_output))
 
             # Save the data
             self.save_data(data_sample)
