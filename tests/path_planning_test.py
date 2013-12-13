@@ -11,6 +11,11 @@ import surgicalsim.lib.network as network
 
 
 if __name__ == '__main__':
+    # Define testing constants
+    NUM_TRAINING_ITERATIONS = 100
+    NUM_HIDDEN_NODES = 100
+    WASHOUT_RATIO = 1.0 / 100.0
+
     # Build up the list of files to use as training set
     filepath = '/Users/evan/Workspace/surgicalsim/results/'
 
@@ -27,7 +32,7 @@ if __name__ == '__main__':
     training_dataset = None
 
     # Store all training set ratings
-    ratings = []
+    ratings = np.array([])
 
     for training_filename in training_filenames:
         training_file = filepath + training_filename
@@ -39,7 +44,8 @@ if __name__ == '__main__':
             dataset=training_dataset
         )
 
-        ratings.append(training_data[:,constants.G_RATING_IDX])
+        this_rating = training_data[int(len(training_data)*WASHOUT_RATIO):,constants.G_RATING_IDX]
+        ratings = np.hstack((ratings, this_rating))
 
     # Get testing data
     testing_file = filepath + testing_filename
@@ -51,10 +57,20 @@ if __name__ == '__main__':
         dataset=None
     )
 
-    NUM_TRAINING_ITERATIONS = 100
-    NUM_HIDDEN_NODES = 100
-    WASHOUT_RATIO = 1.0 / 100.0
+    # Build up a full ratings matrix
+    nd_ratings = None
 
+    print(ratings.shape)
+
+    for rating in ratings:
+        this_rating = rating * np.ones((1, constants.G_LT_NUM_OUTPUTS))
+
+        if nd_ratings is None:
+            nd_ratings = this_rating
+        else:
+            nd_ratings = np.vstack((nd_ratings, this_rating))
+
+    # Create network and trainer
     print('>>> Building Network...')
     net = network.PathPlanningNetwork(
         indim=constants.G_LT_NUM_INPUTS,
@@ -67,7 +83,7 @@ if __name__ == '__main__':
         evolino_network=net,
         dataset=training_dataset,
         wtRatio=WASHOUT_RATIO,
-        #importance=ratings
+        importance=nd_ratings
     )
 
     # Begin the training iterations
