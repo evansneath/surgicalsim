@@ -19,6 +19,7 @@ Functions:
 """
 
 import numpy as np
+import surgicalsim.lib.constants as constants
 
 
 def build_end_effector(xode, y_offset):
@@ -104,43 +105,22 @@ def build_test_article(xode, randomize=True):
     # Keep the standard height of each gate at 10 cm off the board
     gate_height_multiplier = 0.10
 
-    # Define standard normalized gate positions for each gate [x, z]
-    gate_norm_pos = np.array([
-        [-1, -1],
-        [-1,  0],
-        [-1,  1],
-        [ 0,  1],
-        [ 1,  1],
-        [ 1,  0],
-        [ 1, -1],
-        [ 0, -1],
-    ])
-
     # Define the normalization factor of position for each gate
     gate_pos_multiplier = (l_table / 2.0) * 0.8
 
     # Define standard normalized angles for each gate. Zero degrees is
-    # along the positive X axis. Rotation is counter-clockwise. 1.0 is
-    # 180 degrees (or pi radians) rotation
-    gate_norm_rot = np.array([
-        0.25,
-        0.0,
-        -0.25,
-        -0.50,
-        -0.75,
-        -1.0,
-        -1.25,
-        -1.50,
-    ])
+    # along the positive X axis. Rotation is clockwise. 0.5 is 180 degrees
+    # (or pi radians) rotation
+    gate_norm_rot = constants.G_GATE_NORM_ROT + 0.25
 
     # Define the rotation multiplier to unnormalize the rotation value
-    gate_rot_multiplier = np.pi
+    gate_rot_multiplier = 2.0 * np.pi
 
     # Calculate the actual gate height [y]
     gate_height = gate_norm_height * gate_height_multiplier
 
     # Calculate the actual gate position [x, z]
-    gate_pos = gate_norm_pos * gate_pos_multiplier
+    gate_pos = constants.G_GATE_NORM_POS * gate_pos_multiplier
 
     # Calculate the actual gate rotation
     gate_rot = gate_norm_rot * gate_rot_multiplier
@@ -162,7 +142,7 @@ def build_test_article(xode, randomize=True):
         gate_rot += rot_rand
 
     # Generate the gates at these positions
-    for i in range(8):#range(8):
+    for i in range(constants.G_NUM_GATES):
         _build_gate(xode, i, y_top_table, gate_height[i], gate_pos[i],
                 gate_rot[i])
 

@@ -60,8 +60,6 @@ if __name__ == '__main__':
     # Build up a full ratings matrix
     nd_ratings = None
 
-    print(ratings.shape)
-
     for rating in ratings:
         this_rating = rating * np.ones((1, constants.G_LT_NUM_OUTPUTS))
 
@@ -72,14 +70,14 @@ if __name__ == '__main__':
 
     # Create network and trainer
     print('>>> Building Network...')
-    net = network.PathPlanningNetwork(
+    net = network.LongTermPlanningNetwork(
         indim=constants.G_LT_NUM_INPUTS,
         outdim=constants.G_LT_NUM_OUTPUTS,
         hiddim=NUM_HIDDEN_NODES
     )
 
     print('>>> Initializing Trainer...')
-    trainer = network.PathPlanningTrainer(
+    trainer = network.LongTermPlanningTrainer(
         evolino_network=net,
         dataset=training_dataset,
         wtRatio=WASHOUT_RATIO,

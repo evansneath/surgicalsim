@@ -238,13 +238,14 @@ def _detect_segments(data):
             segment_ends.append(data.shape[0])
             continue
 
-        cur_gate_start = constants.G_GATE_IDX + (cur_gate * 3)
-        cur_gate_end = cur_gate_start + constants.G_NUM_GATE_DIMS
+        cur_gate_pos_start = (constants.G_GATE_IDX +
+                (cur_gate * constants.G_NUM_GATE_DIMS))
+        cur_gate_pos_end = cur_gate_pos_start + constants.G_NUM_GATE_DIMS - 1
 
         # Calculate distance
         dist = cdist(
-            data[:,constants.G_POS_IDX:],
-            data[:,cur_gate_start:cur_gate_end],
+            data[:,constants.G_POS_IDX:constants.G_POS_IDX+constants.G_NUM_POS_DIMS],
+            data[:,cur_gate_pos_start:cur_gate_pos_end],
             metric='euclidean'
         )[:,0]
 
@@ -255,6 +256,35 @@ def _detect_segments(data):
         segment_ends.append(closest_epoch)
 
     return segment_ends
+
+
+def split_segments(data):
+    """Split Segments
+
+    Given full path data, split the path into segments of the path between
+    gates. Samples of each segment are then outputted.
+
+    Arguments:
+        data: The path data from TrainingSim.
+
+    Returns:
+        A list of path segment data.
+    """
+    segment_list = []
+
+    # Determine the start and end point for each segment
+    segment_start = 0
+    segment_ends = _detect_segments(data)
+
+    for segment_end in segment_ends:
+        # Split and store the data per segment
+        segment_data = data[segment_start:segment_end]
+        segment_list.append(segment_data)
+
+        # Modify the next segment start
+        segment_start = segment_end
+
+    return segment_list
 
 
 def rate_segments(data):
@@ -347,7 +377,7 @@ if __name__ == '__main__':
         in_file = sys.argv[1]
     else:
         # Get the path from a prompted filename
-        in_file = raw_input('Enter path file to trim: ')
+        in_file = raw_input('Enter path file to display: ')
 
     path = datastore.retrieve(in_file)
 
@@ -355,7 +385,7 @@ if __name__ == '__main__':
     fig = plt.figure(facecolor='white')
     axis = fig.gca(projection='3d')
 
-    display_path(axis, path, title='Training Path')
+    display_path(axis, path, title='Path')
 
     plt.show()
 

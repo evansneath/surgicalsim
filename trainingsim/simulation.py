@@ -25,6 +25,8 @@ import numpy as np
 from world import TrainingSimWorld
 
 # Import surgicalsim modules
+import surgicalsim.lib.constants as constants
+
 from surgicalsim.lib.environment import EnvironmentInterface
 from surgicalsim.lib.controller import PhantomOmniInterface
 from surgicalsim.lib.viewer import ViewerInterface
@@ -51,17 +53,6 @@ class TrainingSimulation(object):
     viewer = None
     saved_data = None
 
-    gate_names = [
-        'gate4',
-        'gate3',
-        'gate2',
-        'gate1',
-        'gate0',
-        'gate7',
-        'gate6',
-        'gate5',
-    ]
-
     def __init__(self, randomize=False, network=False, verbose=False):
         """Initialize
 
@@ -79,7 +70,7 @@ class TrainingSimulation(object):
         # Generate the XODE file
         XODE_FILENAME = 'model' # .xode is appended automatically
 
-        print '>>> Generating world model'
+        print('>>> Generating world model')
         if os.path.exists('./'+XODE_FILENAME+'.xode'):
             os.remove('./'+XODE_FILENAME+'.xode')
 
@@ -90,7 +81,7 @@ class TrainingSimulation(object):
         xode_model.generate()
 
         # Start environment
-        print '>>> Starting environment'
+        print('>>> Starting environment')
         self.env = EnvironmentInterface(
                 xode_filename='./'+XODE_FILENAME+'.xode',
                 realtime=False,
@@ -104,12 +95,12 @@ class TrainingSimulation(object):
         }
 
         # Start viewer
-        print '>>> Starting viewer'
+        print('>>> Starting viewer')
         self.viewer = ViewerInterface(verbose=verbose)
         self.viewer.start()
 
         # Start controller
-        print '>>> Starting Phantom Omni interface'
+        print('>>> Starting Phantom Omni interface')
         self.omni = PhantomOmniInterface()
 
         if network:
@@ -172,18 +163,17 @@ class TrainingSimulation(object):
             ]).flatten()
 
             # Capture the gate position at each time step
-            for gate_name in self.gate_names:
-                gate_pos = np.array(self.env.get_body_pos(gate_name)).flatten()
-                sample_input = np.hstack((sample_input, gate_pos))
+            for gate_idx in range(constants.G_NUM_GATES):
+                gate_pos = np.array(self.env.get_body_pos('gate%d'%gate_idx)).flatten()
+                gate_rot = constants.G_GATE_NORM_ROT[gate_idx]
+                sample_input = np.hstack((sample_input, gate_pos, gate_rot))
 
             # Determine the output data to record
             sample_output = np.array([
                 self.env.get_body_pos('tooltip'),
-                #self.omni.get_angle(),
             ]).flatten()
 
             # Join the sample input/output
-            #data_sample = np.concatenate((sample_input, sample_output), axis=0)
             data_sample = np.hstack((sample_input, sample_output))
 
             # Save the data

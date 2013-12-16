@@ -98,25 +98,25 @@ def main():
     
     try:
         # Initialize all module of the simulation
-        print '>>> Initializing...'
+        print('>>> Initializing...')
         sim = TrainingSimulation(args.randomize, args.network, args.verbose)
 
         # Continue to execute the main simulation loop
-        print '>>> Running... (ctrl+c to exit)'
+        print('>>> Running... (ctrl+c to exit)')
         sim.start()
     except KeyboardInterrupt as e:
         # Except the keyboard interrupt as the valid way of leaving the loop
         if sim is not None and len(sim.saved_data):
-            print '\n>>> Processing path data...'
+            print('\n>>> Processing path data...')
             path = process_path(sim.saved_data)
 
-            print '\n>>> Writing path data to %s' % args.outfile
+            print('\n>>> Writing path data to %s' % args.outfile)
             datastore.store(path, args.outfile)
 
-        print '>>> Cleaning up...'
+        print('>>> Cleaning up...')
         del sim
 
-        print '>>> Exiting'
+        print('>>> Exiting')
 
     return
 
