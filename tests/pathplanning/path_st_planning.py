@@ -41,13 +41,13 @@ if __name__ == '__main__':
         for gate, path in enumerate(training_segments):
             # Get short-term training inputs
             input_start_idx = constants.G_ST_INPUT_IDX + (gate * constants.G_NUM_GATE_DIMS)
-            input_end_idx = start_input_idx + constants.G_ST_NUM_INPUTS
-            input = path[:,start_input_idx:end_input_idx]
+            input_end_idx = input_start_idx + constants.G_ST_NUM_INPUTS
+            input = path[:,input_start_idx:input_end_idx]
 
             # Get short-term training outputs
-            output_start_idx = constants.G_G_ST_OUTPUT_IDX
+            output_start_idx = constants.G_ST_OUTPUT_IDX
             output_end_idx = output_start_idx + constants.G_ST_NUM_OUTPUTS
-            output = path[:,output_start_idx:output_end_idx],
+            output = path[:,output_start_idx:output_end_idx]
 
             # Convert input and output sequence to dataset object
             training_dataset = datastore.list_to_dataset(
@@ -59,15 +59,21 @@ if __name__ == '__main__':
     # Build a testing dataset
     testing_dataset = None
 
+    testing_file = filepath + testing_filename
+    testing_data = datastore.retrieve(testing_file)
+
+    # Split the data into gate segments
+    testing_segments = pathutils.split_segments(testing_data)
+
     for gate, path in enumerate(testing_segments):
         input_start_idx = constants.G_ST_INPUT_IDX + (gate * constants.G_NUM_GATE_DIMS)
-        input_end_idx = start_input_idx + constants.G_ST_NUM_INPUTS
-        input = path[:,start_input_idx:end_input_idx]
+        input_end_idx = input_start_idx + constants.G_ST_NUM_INPUTS
+        input = path[:,input_start_idx:input_end_idx]
 
         # Get short-term training outputs
-        output_start_idx = constants.G_G_ST_OUTPUT_IDX
+        output_start_idx = constants.G_ST_OUTPUT_IDX
         output_end_idx = output_start_idx + constants.G_ST_NUM_OUTPUTS
-        output = path[:,output_start_idx:output_end_idx],
+        output = path[:,output_start_idx:output_end_idx]
 
         testing_dataset = datastore.list_to_dataset(
             input,
@@ -86,7 +92,7 @@ if __name__ == '__main__':
     print('>>> Initializing Trainer...')
     trainer = network.ShortTermPlanningTrainer(
         net,
-        dataset=training_datset,
+        dataset=training_dataset,
         #learningrate=0.1,
         #lrdecay=1.0,
         #momentum=0.0,
@@ -95,5 +101,4 @@ if __name__ == '__main__':
         #weightdecay=0.0,
     )
 
-    for idx in range(NUM_TRAINING_ITERATIONS):
-        trainer.train()
+    trainer.trainUntilConvergence(trainingData=training_dataset, validationData=testing_dataset)
