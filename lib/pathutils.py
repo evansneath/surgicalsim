@@ -234,7 +234,7 @@ def _detect_segments(data):
     for cur_gate in xrange(constants.G_NUM_GATES):
         # The last segment should contain the end at the last index
         if cur_gate == constants.G_NUM_GATES - 1:
-            segment_ends.append(data.shape[0])
+            segment_ends.append(data.shape[0]-1)
             continue
 
         cur_gate_pos_start = (constants.G_GATE_IDX +
