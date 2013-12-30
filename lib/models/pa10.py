@@ -123,7 +123,8 @@ def build_pa10(xode, x_offset, z_offset):
     ])
 
     l2_arm_diameter = 0.120 # [m]
-    l2_arm_length = 0.245 + (l2_joint_diameter / 2.0) # [m]
+    #l2_arm_length = 0.245 + (l2_joint_diameter / 2.0) # [m]
+    l2_arm_length = 0.250 + (l2_joint_diameter / 2.0) # [m]
 
     l2_arm_size = np.array([
         l2_arm_diameter/2.0,
@@ -188,7 +189,7 @@ def build_pa10(xode, x_offset, z_offset):
 
     l3_connector_distance = 0.120 # [m]
 
-    # Build a 'U' shaped connector joint (all of l1)
+    # Build a 'U' shaped connector joint (all of l3)
     _build_connector_joint(
             xode,
             name='pa10_l3',
@@ -223,7 +224,7 @@ def build_pa10(xode, x_offset, z_offset):
     ])
 
     l4_arm_diameter = 0.100 # [m]
-    l4_arm_length = 0.235 + (l4_joint_diameter / 2.0) # [m]
+    l4_arm_length = 0.240 + (l4_joint_diameter / 2.0) # [m]
 
     l4_arm_size = np.array([
         l4_arm_diameter/2.0,
@@ -272,7 +273,7 @@ def build_pa10(xode, x_offset, z_offset):
     # Define the l5 connectors parameters
     l5_connector_height = 0.240 # [m]
     l5_connector_width = 0.030 # [m]
-    l5_connector_depth = 0.086 # [m]
+    l5_connector_depth = 0.080 # [m]
 
     l5_connector_size = np.array([
         l5_connector_height,
@@ -323,7 +324,7 @@ def build_pa10(xode, x_offset, z_offset):
     ])
 
     l6_arm_diameter = 0.063 # [m]
-    l6_arm_length = 0.238 # [m]
+    l6_arm_length = 0.233 # [m]
 
     l6_arm_size = np.array([
         l6_arm_diameter/2.0,
