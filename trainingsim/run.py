@@ -77,9 +77,6 @@ def process_path(data):
     # Prompt the user to trim the start and end of the path
     data = pathutils.trim_path(data)
 
-    # Normalize the time dimension of the data between 0.0 and 1.0
-    data = pathutils.normalize_time(data, t_col=constants.G_TIME_IDX)
-
     # Prompt the user to rate all detected segments of the path
     data = pathutils.rate_segments(data)
 

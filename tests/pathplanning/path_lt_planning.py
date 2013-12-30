@@ -17,7 +17,7 @@ if __name__ == '__main__':
     WASHOUT_RATIO = 1.0 / 100.0
 
     # Build up the list of files to use as training set
-    filepath = '/Users/evan/Workspace/surgicalsim/results/'
+    filepath = '/Users/evansneath/Workspace/surgicalsim/results/'
 
     training_filenames = [
         'sample1.dat',
@@ -38,12 +38,17 @@ if __name__ == '__main__':
         training_file = filepath + training_filename
         training_data = datastore.retrieve(training_file)
 
+        # Normalize the time input of the data
+        training_data = pathutils.normalize_time(data, t_col=constants.G_TIME_IDX)
+
+        # Add this data sample to the training dataset
         training_dataset = datastore.list_to_dataset(
             training_data[:,constants.G_LT_INPUT_IDX:constants.G_LT_INPUT_IDX+constants.G_LT_NUM_INPUTS],
             training_data[:,constants.G_LT_OUTPUT_IDX:constants.G_LT_OUTPUT_IDX+constants.G_LT_NUM_OUTPUTS],
             dataset=training_dataset
         )
 
+        # Store the rating of the data
         this_rating = training_data[int(len(training_data)*WASHOUT_RATIO):,constants.G_RATING_IDX]
         ratings = np.hstack((ratings, this_rating))
 
@@ -51,6 +56,7 @@ if __name__ == '__main__':
     testing_file = filepath + testing_filename
     testing_data = datastore.retrieve(testing_file)
 
+    # Store the testing data in a datastore object
     testing_dataset = datastore.list_to_dataset(
         testing_data[:,constants.G_LT_INPUT_IDX:constants.G_LT_INPUT_IDX+constants.G_LT_NUM_INPUTS],
         testing_data[:,constants.G_LT_OUTPUT_IDX:constants.G_LT_OUTPUT_IDX+constants.G_LT_NUM_OUTPUTS],
