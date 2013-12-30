@@ -118,7 +118,6 @@ def normalize_time(data, t_col=0):
     return data
 
 
-
 def trim_path(path):
     """Trim Path
 
