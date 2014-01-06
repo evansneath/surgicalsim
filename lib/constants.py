@@ -39,6 +39,10 @@ G_GATE_NORM_ROT = np.array([
     0.25,
 ])
 
+# Neural network constants
+G_NUM_HIDDEN_NODES = 100
+
+
 """Path Data Format
 [0] - t - normalized time value (0.0-1.0)
 [1-32] - gate positions ((x,y,z,theta) * 8)

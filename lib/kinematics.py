@@ -27,6 +27,11 @@ class PA10Kinematics(object):
         super(PA10Kinematics, self).__init__(self)
         return
 
+    def calc_inverse_kinematics(pos_init, pos_goal):
+        # TODO: Perform PA10 inverse kinematics
+
+        return angles
+
 
 if __name__ == '__main__':
     pass
