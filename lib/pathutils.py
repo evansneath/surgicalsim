@@ -257,6 +257,38 @@ def _detect_segments(data):
     return segment_ends
 
 
+def fix_starting_pos(data):
+    """Fix Starting Path Position
+
+    Given a path, the starting position (data[0]) of the tooltip will be
+    corrected such that the starting position is equal to the starting gate
+    position. This allows for a uniform starting state for every trained path.
+
+    Arguments:
+        data: The path data from TrainingSim.
+        
+    Returns:
+        The corrected path data.
+    """
+    # Calculate gate indices
+    gate_pos_start_idx = (constants.G_GATE_IDX +
+                          ((constants.G_NUM_GATES - 1)
+                           * constants.G_NUM_GATE_DIMS))
+    gate_pos_end_idx = gate_pos_start_idx + constants.G_NUM_POS_DIMS
+
+    # Get starting gate position
+    gate_pos = data[0,gate_pos_start_idx:gate_pos_end_idx]
+
+    # Calculate tooltip indices
+    tt_pos_start_idx = constants.G_POS_IDX
+    tt_pos_end_idx = tt_pos_start_idx + constants.G_NUM_POS_DIMS
+
+    # Set starting tooltip position to first gate position
+    data[0,tt_pos_start_idx:tt_pos_end_idx] = gate_pos
+
+    return data
+
+
 def split_segments(data):
     """Split Segments
 
@@ -367,18 +399,41 @@ if __name__ == '__main__':
     a path dataset and plotted.
 
     Usage:
-        ./path_trimmer.py <path_filename>
+        ./path_trimmer.py [-t|-n|-f|-o <out>] <source>
     """
-    import sys
+    import argparse
 
-    if len(sys.argv) > 1:
-        # Get the path from the incoming cmd line arg
-        in_file = sys.argv[1]
-    else:
-        # Get the path from a prompted filename
-        in_file = raw_input('Enter path file to display: ')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', '--trim',
+                        help='trim the start and end of the path',
+                        action='store_true')
+    parser.add_argument('-n', '--normalize',
+                        help='normalize path time',
+                        action='store_true')
+    parser.add_argument('-f', '--fix',
+                        help='modify the initial position of the path',
+                        action='store_true')
+    parser.add_argument('-o', '--out',
+                        help='alternate path output',
+                        action='store',
+                        default=None)
+    parser.add_argument('source',
+                        help='source file containing path data')
+    args = parser.parse_args()
 
-    path = datastore.retrieve(in_file)
+    path = datastore.retrieve(args.source)
+
+    # Trim if requested
+    if args.trim:
+        path = trim_path(path)
+
+    # Normalize time if requested
+    if args.normalize:
+        path = normalize_time(path)
+
+    # Fix starting position if requested
+    if args.fix:
+        path = fix_starting_pos(path)
 
     # Plot the inputted path
     fig = plt.figure(facecolor='white')
@@ -387,5 +442,10 @@ if __name__ == '__main__':
     display_path(axis, path, title='Path')
 
     plt.show()
+
+    if args.out is not None:
+        datastore.store(path, args.out)
+    else:
+        datastore.store(path, args.source)
 
     exit()
