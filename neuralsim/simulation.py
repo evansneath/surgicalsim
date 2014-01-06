@@ -27,6 +27,10 @@ from world import NeuralSimWorld
 # Import surgicalsim modules
 from surgicalsim.lib.environment import EnvironmentInterface
 from surgicalsim.lib.viewer import ViewerInterface
+from surgicalsim.lib.kinematics import PA10Kinematics
+
+import surgicalsim.lib.network as network
+import surgicalsim.lib.pathutils as pathutils
 
 
 def oscillation_test(t, amp, freq):
@@ -50,8 +54,10 @@ class NeuralSimulation(object):
     """
     env = None
     viewer = None
+    rnn = None
+    kinematics = None
 
-    def __init__(self, randomize=False, verbose=False):
+    def __init__(self, randomize=False, rnn_xml=None, verbose=False):
         """Initialize
 
         Creates the environment and viewer objects required to run the neural
@@ -60,13 +66,16 @@ class NeuralSimulation(object):
         Arguments:
             randomize: Determines if the test article gates will be randomized.
                 (Default: False)
+            rnn_xml: A XML filename containing neural network parameters. If
+                None, a new neural network will be trained until convergence.
+                (Default: None)
             verbose: Determines the level out debug output generated.
                 (Default: False)
         """
         # Generate the XODE file
         XODE_FILENAME = 'model' # .xode is appended automatically
 
-        print '>>> Generating world model'
+        print('>>> Generating world model')
         if os.path.exists('./'+XODE_FILENAME+'.xode'):
             os.remove('./'+XODE_FILENAME+'.xode')
 
@@ -76,8 +85,22 @@ class NeuralSimulation(object):
         )
         xode_model.generate()
 
+        print('>>> Generating RNN')
+
+        # Determine if we need to train the neural network
+        if rnn_xml is not None:
+            print('>>> Loading RNN from file')
+            self.rnn = network.LongTermPlanningNetwork()
+            self.rnn.load_network_from_file(network_xml)
+        else:
+            print('>>> Training new RNN')
+            self.rnn = network.train_lt_network()
+
+        print('>>> Starting kinematics engine')
+        self.kinematics = PA10Kinematics()
+
         # Start environment
-        print '>>> Starting environment'
+        print('>>> Starting environment')
         self.env = EnvironmentInterface(
                 xode_filename='./'+XODE_FILENAME+'.xode',
                 realtime=False,
@@ -86,7 +109,7 @@ class NeuralSimulation(object):
         )
 
         # Start viewer
-        print '>>> Starting viewer'
+        print('>>> Starting viewer')
         self.viewer = ViewerInterface(verbose=verbose)
         self.viewer.start()
 
@@ -110,12 +133,42 @@ class NeuralSimulation(object):
         stopped = False
 
         # Define the simulation frame rate
-        t = 0.0
+        t = 0.0 # [s]
         dt = 1.0 / float(fps) # [s]
 
         # Keep track of time overshoot in the case that simulation time must be
         # increased in order to maintain real-time constraints
         t_overshoot = 0.0
+
+        # Calculate the indices of the end effector position columns
+        pos_start_col = constants.G_POS_IDX
+        pos_end_col = pos_start_col + constants.G_NUM_POS_DIMS
+
+        # Get the initial path position (center of gate7)
+        pos_start = np.array(self.env.get_body_pos('gate7')) # [m]
+
+        # Get the first position of the PA10 at rest
+        pos_init = np.array(self.env.get_body_pos('tooltip')) # [m]
+ 
+        # Calculate the new required joint angles of the PA10
+        pa10_joint_angles = self.kinematics.calc_inverse_kinematics(pos_init, pos_start)
+
+        # TODO: Move the PA10 end-effector to the starting position along the path
+
+
+        # Generate long-term path from initial position
+        rnn_path = self.rnn.activate(pos_start)
+
+        # Detect all path segments between gates in the generated path
+        segments = pathutils._detect_segments(path)
+
+        path_idx = 0
+
+        # Define the maximum allowed corrective speed
+        max_vel = 2.0 # [m/s]
+
+        # A running total of the offset of current position from the path
+        total_path_offset = 0.0
 
         while not stopped:
             t_start = time.time()
@@ -128,40 +181,56 @@ class NeuralSimulation(object):
             # TODO: Update the viewer with the latest control signals
             #viewer.update()
 
-            if paused:
+            # Pause the simulation if we are at the end
+            if path_idx == len(rnn_path) - 1 or paused:
                 self.env.step(paused=True, fast=fast_step)
                 continue
 
-            # TODO: Sensing and actuation from neural network happens here
+            # Determine the current path segment
+            curr_segment_idx = 0
 
-            # Rotational velocities must be inputted to ODE in rad/s
-            #pa10_joint_vels = np.deg2rad(np.array([
-            #    1.0, # S1 velocity [deg/s] (converted to rad/s later)
-            #    1.0, # S2
-            #    1.0, # S3
-            #    1.0, # E1
-            #    1.0, # E2
-            #    1.0, # W1
-            #    1.0, # W2
-            #]))
+            for segment_idx, segment_end in enumerate(segments):
+                if path_idx <= segment_end:
+                    curr_segment_idx = segment_idx
 
-            # Perform a simple oscillation test to test the joint position
-            # accuracy
+            # Deterimine next step in neural network generated path
+            t_curr = rnn_path[path_idx,constants.G_TIME_IDX]
+            t_next = rnn_path[path_idx+1,constants.G_TIME_IDX]
+            t_diff = t_next - t_curr
 
-            if t < 10 or t > 20:
-                amps_deg = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-                pa10_joint_vels = np.deg2rad(np.array(amps_deg))
-            elif 10 <= t < 15:
-                amps_deg = [45.0, 0.0, 45.0, 0.0, 45.0, 0.0, 0.0]
-                amps = np.deg2rad(np.array(amps_deg))
-                freq = 0.5
-                pa10_joint_vels = oscillation_test(t, amps, freq)
-            elif 15 <= t < 20:
-                amps_deg = [0.0, 45.0/5.0, 0.0, 45.0/5.0, 0.0, 90.0/5.0, 0.0]
-                pa10_joint_vels = np.deg2rad(np.array(amps_deg))
+            pos_curr = rnn_path[path_idx,pos_start_col:pos_end_col] + total_path_offset
+            pos_next = rnn_path[path_idx+1,pos_start_col:pos_end_col] + total_path_offset
+            pos_diff = pos_next - pos_curr
+
+            # Calculate the base velocity needed to drive the end effector
+            vel = pos_diff / t_diff
+
+            # Get the expected gate position
+            pos_gate_expected = rnn_path[segments[curr_segment_idx],pos_start_col:pos_end_col]
+
+            # Get the actual gate position
+            pos_gate_actual = np.array(self.env.get_body_pos('gate%d'%curr_segment_idx)).flatten()
+
+            # Correct next step velocity
+            gate_pos_error = pos_gate_actual - (pos_gate_expected + total_path_offset)
+
+            # Calculate new velocity required to hit the target gate
+            vel_new = np.clip((gate_pos_error/t_diff)+vel, -max_vel, max_vel)
+            pos_new_diff = vel_new * t_diff
+
+            # Calculate the total distance that end effector has deviated from the path
+            total_path_offset += pos_new_diff - pos_diff
+
+            # Recalculate the next position based on gate target movement
+            pos_next = pos_curr + pos_new_diff
+
+            # Perform inverse kinematics to get joint angles
+            pa10_joint_angles = self.kinematics.calc_inverse_kinematics(pos_curr, pos_next)
 
             # Step through the world by 1 time frame and actuate pa10 joints
             self.env.performAction(pa10_joint_vels, fast=fast_step)
+
+            # Update current time after this step
             t += dt_warped
 
             # Determine the difference in virtual vs actual time

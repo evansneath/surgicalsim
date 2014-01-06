@@ -46,6 +46,11 @@ def parse_arguments():
             '-f', '--fast', action='store_true',
             help='use fast step function (for slower machines)'
     )
+    parser.add_argument(
+            '-n', '--network', action='store',
+            help='load neural network parameters from xml file',
+            default=None
+    )
 
     args = parser.parse_args()
 
@@ -65,7 +70,7 @@ def main():
     try:
         # Initialize all module of the simulation
         print '>>> Initializing...'
-        sim = NeuralSimulation(args.randomize, args.verbose)
+        sim = NeuralSimulation(args.randomize, args.network, args.verbose)
 
         # Continue to execute the main simulation loop
         print '>>> Running... (ctrl+c to exit)'
