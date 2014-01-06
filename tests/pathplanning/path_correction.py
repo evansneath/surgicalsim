@@ -21,7 +21,7 @@ def main():
     pos_start_col = constants.G_POS_IDX
     pos_end_col = pos_start_col + constants.G_NUM_POS_DIMS
 
-    max_vel = 3.0 # [m/s]
+    max_vel = 2.0 # [m/s]
 
     total_path_offset = 0.0
     target_error = 0.0
@@ -60,7 +60,9 @@ def main():
         target_error = gate_pos - (target_pos + total_path_offset)
 
         # Calculate the modifier for the velocity
-        new_vel = np.clip((target_error/dt)+vel, -max_vel, max_vel)
+        vel_mod = np.clip(target_error/dt, -max_vel+vel, max_vel-vel)
+
+        new_vel = vel + vel_mod
 
         new_dpos = new_vel * dt
 
