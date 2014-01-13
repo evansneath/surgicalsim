@@ -16,7 +16,7 @@ if __name__ == '__main__':
     NUM_HIDDEN_NODES = 10
 
     # Get short term path segments from multiple paths
-    filepath = '/Users/evan/Workspace/surgicalsim/results/'
+    filepath = '../../results/'
 
     training_filenames = [
         'sample1.dat',

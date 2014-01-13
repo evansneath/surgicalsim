@@ -9,7 +9,7 @@ import surgicalsim.lib.pathutils as pathutils
 
 
 def main():
-    path_file = '/Users/evan/Workspace/surgicalsim/results/sample5.dat'
+    path_file = '../../results/sample5.dat'
     path = datastore.retrieve(path_file)
 
     # A list of the the segments of the optimized path

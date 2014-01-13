@@ -21,7 +21,7 @@ def train_lt_network():
         A copy of the fully-trained path planning neural network.
     """
     # Build up the list of files to use as training set
-    filepath = '/Users/evan/Workspace/surgicalsim/results/'
+    filepath = '../../results/'
 
     training_filenames = [
         'sample1.dat',
