@@ -31,6 +31,7 @@ from surgicalsim.lib.kinematics import PA10Kinematics
 
 import surgicalsim.lib.network as network
 import surgicalsim.lib.pathutils as pathutils
+import surgicalsim.lib.constants as constants
 
 
 def oscillation_test(t, amp, freq):
@@ -91,7 +92,7 @@ class NeuralSimulation(object):
         if rnn_xml is not None:
             print('>>> Loading RNN from file')
             self.rnn = network.LongTermPlanningNetwork()
-            self.rnn.load_network_from_file(network_xml)
+            self.rnn.load_network_from_file(rnn_xml)
         else:
             print('>>> Training new RNN')
             self.rnn = network.train_lt_network()
@@ -138,6 +139,9 @@ class NeuralSimulation(object):
         paused = False
         stopped = False
 
+        # Define the total time for the tooltip traversal
+        t_total = 15.0
+
         # Define the simulation frame rate
         t = 0.0 # [s]
         dt = 1.0 / float(fps) # [s]
@@ -156,8 +160,6 @@ class NeuralSimulation(object):
         # Get the first position of the PA10 at rest
         pos_init = np.array(self.env.get_body_pos('tooltip')) # [m]
 
-        print(pos_init)
- 
         # Calculate the new required joint angles of the PA10
         pa10_joint_angles = self.kinematics.calc_inverse_kinematics(pos_init, pos_start)
 
@@ -167,10 +169,19 @@ class NeuralSimulation(object):
         self.env.set_group_pos('pointer', pos_start)
 
         # Generate long-term path from initial position
-        rnn_path = self.rnn.activate(pos_start)
+        t_input = np.linspace(start=0.0, stop=1.0, num=t_total/dt)
+        t_input = np.reshape(t_input, (len(t_input), 1))
+
+        rnn_path = self.rnn.extrapolate(t_input, [pos_start], len(t_input)-1)
+
+        # Append the time steps to the generated path
+        rnn_path = np.hstack((t_input, rnn_path))
+
+        # Append standard gate positions to the generated path
+
 
         # Detect all path segments between gates in the generated path
-        segments = pathutils._detect_segments(path)
+        segments = pathutils._detect_segments(rnn_path)
 
         path_idx = 0
 
@@ -187,9 +198,6 @@ class NeuralSimulation(object):
             dt_warped = dt + t_overshoot
 
             self.env.set_dt(dt_warped)
-
-            # TODO: Update the viewer with the latest control signals
-            #viewer.update()
 
             # Pause the simulation if we are at the end
             if path_idx == len(rnn_path) - 1 or paused:
@@ -237,12 +245,11 @@ class NeuralSimulation(object):
             # TODO: TEMP
             vel = (pos_next - pos_curr) / t_diff
             self.env.set_group_linear_vel('pointer', vel)
-            
 
             # Perform inverse kinematics to get joint angles
             pa10_joint_angles = self.kinematics.calc_inverse_kinematics(pos_curr, pos_next)
 
-            # Step through the world by 1 time frame and actuate pa10 joints
+            # TODO: Step through the world by 1 time frame and actuate pa10 joints
             #self.env.performAction(pa10_joint_vels, fast=fast_step)
 
             # Update current time after this step

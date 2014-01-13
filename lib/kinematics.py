@@ -24,11 +24,12 @@ class PA10Kinematics(object):
     velocities for the PA10 joint will be calculated.
     """
     def __init__(self):
-        super(PA10Kinematics, self).__init__(self)
+        super(PA10Kinematics, self).__init__()
         return
 
-    def calc_inverse_kinematics(pos_init, pos_goal):
+    def calc_inverse_kinematics(self, pos_init, pos_goal):
         # TODO: Perform PA10 inverse kinematics
+        angles = None
 
         return angles
 

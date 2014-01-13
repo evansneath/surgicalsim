@@ -372,7 +372,7 @@ def train_lt_network():
     fig.show()
 
     # Define paramters for convergence
-    MAX_ITERATIONS = 100
+    MAX_ITERATIONS = 5#100
     CONVERGENCE_THRESHOLD = -0.00005
     REQUIRED_CONVERGENCE_STREAK = 10
 
@@ -421,7 +421,7 @@ def train_lt_network():
         if current_convergence_streak == REQUIRED_CONVERGENCE_STREAK:
             print('>>> Convergence Achieved: %d Iterations' % idx)
             break
-        elif idx == MAX_ITERATIONS:
+        elif idx == MAX_ITERATIONS - 1:
             print('>>> Reached maximum iterations (%d)' % MAX_ITERATIONS)
             break
 
