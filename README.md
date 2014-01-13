@@ -2,7 +2,7 @@ Surgical Sim
 ============
 
 ##Description
-A neural-network test environment for the Mitsubishi PA-10 robotic arm.
+An artificial neural network test environment for the Mitsubishi PA-10 robotic arm.
 
 ##Author
 Created by [Evan Sneath](http://github.com/evansneath)
