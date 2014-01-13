@@ -113,6 +113,12 @@ class NeuralSimulation(object):
         self.viewer = ViewerInterface(verbose=verbose)
         self.viewer.start()
 
+        # TODO: TEMP
+        # Set up all grouped bodies in the environment
+        self.env.groups = {
+            'pointer': ['tooltip', 'stick'],
+        }
+
         return
 
     def start(self, fps=60, fast_step=False):
@@ -149,12 +155,16 @@ class NeuralSimulation(object):
 
         # Get the first position of the PA10 at rest
         pos_init = np.array(self.env.get_body_pos('tooltip')) # [m]
+
+        print(pos_init)
  
         # Calculate the new required joint angles of the PA10
         pa10_joint_angles = self.kinematics.calc_inverse_kinematics(pos_init, pos_start)
 
         # TODO: Move the PA10 end-effector to the starting position along the path
 
+        # TODO: TEMP
+        self.env.set_group_pos('pointer', pos_start)
 
         # Generate long-term path from initial position
         rnn_path = self.rnn.activate(pos_start)
@@ -224,11 +234,16 @@ class NeuralSimulation(object):
             # Recalculate the next position based on gate target movement
             pos_next = pos_curr + pos_new_diff
 
+            # TODO: TEMP
+            vel = (pos_next - pos_curr) / t_diff
+            self.env.set_group_linear_vel('pointer', vel)
+            
+
             # Perform inverse kinematics to get joint angles
             pa10_joint_angles = self.kinematics.calc_inverse_kinematics(pos_curr, pos_next)
 
             # Step through the world by 1 time frame and actuate pa10 joints
-            self.env.performAction(pa10_joint_vels, fast=fast_step)
+            #self.env.performAction(pa10_joint_vels, fast=fast_step)
 
             # Update current time after this step
             t += dt_warped

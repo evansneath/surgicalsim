@@ -63,6 +63,8 @@ class NeuralSimWorld(XODEfile):
         y_top_table = models.build_test_article(self,
                 self._randomize_test_article)
 
+        models.build_end_effector(self, y_top_table)
+
         # Build the Mitsubishi PA10 robotic arm
         models.build_pa10(self, 0.0, 1.0)
 

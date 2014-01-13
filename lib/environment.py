@@ -92,7 +92,6 @@ class EnvironmentInterface(ODEEnvironment):
 
         self.get_init_body_positions()
 
-
         actuator = actuators.JointVelocityActuator()
         self.addActuator(actuator)
 
@@ -133,6 +132,7 @@ class EnvironmentInterface(ODEEnvironment):
             pos: The 3-element array [x, y, z] of the new position for the
                 group in [m].
         """
+        # TODO: Fix this, it sets position based on initial position, not global
         for body_name in self.groups[group_name]:
             new_pos = (np.array(self.init_body_positions[body_name]) +
                     np.array(pos))
