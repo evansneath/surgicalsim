@@ -132,11 +132,20 @@ class EnvironmentInterface(ODEEnvironment):
             pos: The 3-element array [x, y, z] of the new position for the
                 group in [m].
         """
-        # TODO: Fix this, it sets position based on initial position, not global
-        for body_name in self.groups[group_name]:
-            new_pos = (np.array(self.init_body_positions[body_name]) +
-                    np.array(pos))
+        # Get the main reference body to move
+        group_bodies = self.groups[group_name]
+        main_body = group_bodies[0]
 
+        # Determine the relative movement (dpos) of all other bodies
+        main_body_pos = self.get_body_pos(main_body)
+        dpos = np.array(pos) - np.array(main_body_pos)
+
+        # Move the main body to the new location
+        self.set_body_pos(main_body, pos)
+
+        # Determine the movement of the other bodies relative to the main body
+        for body_name in group_bodies[1:]:
+            new_pos = self.get_body_pos(body_name) + dpos
             self.set_body_pos(body_name, new_pos)
 
         return

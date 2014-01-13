@@ -32,6 +32,7 @@ from surgicalsim.lib.kinematics import PA10Kinematics
 import surgicalsim.lib.network as network
 import surgicalsim.lib.pathutils as pathutils
 import surgicalsim.lib.constants as constants
+import surgicalsim.lib.datastore as datastore
 
 
 def oscillation_test(t, amp, freq):
@@ -174,11 +175,28 @@ class NeuralSimulation(object):
 
         rnn_path = self.rnn.extrapolate(t_input, [pos_start], len(t_input)-1)
 
+        # Add the initial condition point back onto the data
+        rnn_path = np.vstack((pos_start, rnn_path))
+
         # Append the time steps to the generated path
         rnn_path = np.hstack((t_input, rnn_path))
 
-        # Append standard gate positions to the generated path
+        # Retrieve standard gate position/orientation data
+        file_path = '../results/sample1.dat'
+        gate_data = datastore.retrieve(file_path)
 
+        gate_start_idx = constants.G_GATE_IDX
+        gate_end_idx = constants.G_GATE_IDX + constants.G_NUM_GATE_INPUTS
+
+        gate_data = gate_data[0:1,gate_start_idx:gate_end_idx]
+
+        print(gate_data.shape)
+
+        # TODO: FIX THE SHAPE ISSUE HERE
+        gate_data = np.tile(gate_data, (len(rnn_path), 1))
+
+        # Append standard gate positions to the generated path
+        rnn_path = np.hstack((rnn_path, gate_data))
 
         # Detect all path segments between gates in the generated path
         segments = pathutils._detect_segments(rnn_path)
