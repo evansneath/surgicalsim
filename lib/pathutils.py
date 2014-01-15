@@ -241,8 +241,6 @@ def _detect_segments(data):
                 (cur_gate * constants.G_NUM_GATE_DIMS))
         cur_gate_pos_end = cur_gate_pos_start + constants.G_NUM_GATE_DIMS - 1
 
-        print(data)
-
         # Calculate distance
         dist = cdist(
             data[:,constants.G_POS_IDX:constants.G_POS_IDX+constants.G_NUM_POS_DIMS],

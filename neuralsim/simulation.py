@@ -141,7 +141,7 @@ class NeuralSimulation(object):
         stopped = False
 
         # Define the total time for the tooltip traversal
-        t_total = 15.0
+        t_total = 20.0
 
         # Define the simulation frame rate
         t = 0.0 # [s]
@@ -162,7 +162,7 @@ class NeuralSimulation(object):
         pos_init = np.array(self.env.get_body_pos('tooltip')) # [m]
 
         # Calculate the new required joint angles of the PA10
-        pa10_joint_angles = self.kinematics.calc_inverse_kinematics(pos_init, pos_start)
+        #pa10_joint_angles = self.kinematics.calc_inverse_kinematics(pos_init, pos_start)
 
         # TODO: Move the PA10 end-effector to the starting position along the path
 
@@ -178,25 +178,22 @@ class NeuralSimulation(object):
         # Add the initial condition point back onto the data
         rnn_path = np.vstack((pos_start, rnn_path))
 
-        # Append the time steps to the generated path
-        rnn_path = np.hstack((t_input, rnn_path))
-
         # Retrieve standard gate position/orientation data
         file_path = '../results/sample1.dat'
         gate_data = datastore.retrieve(file_path)
 
         gate_start_idx = constants.G_GATE_IDX
-        gate_end_idx = constants.G_GATE_IDX + constants.G_NUM_GATE_INPUTS
+        gate_end_idx = gate_start_idx + constants.G_NUM_GATE_INPUTS
 
+        # Reshape the gate positions data
         gate_data = gate_data[0:1,gate_start_idx:gate_end_idx]
-
-        print(gate_data.shape)
-
-        # TODO: FIX THE SHAPE ISSUE HERE
         gate_data = np.tile(gate_data, (len(rnn_path), 1))
 
-        # Append standard gate positions to the generated path
-        rnn_path = np.hstack((rnn_path, gate_data))
+        # Complete the rnn path data
+        rnn_path = np.hstack((t_input, gate_data, rnn_path))
+
+        # Save generated path for later examination
+        datastore.store(rnn_path, './generated.dat')
 
         # Detect all path segments between gates in the generated path
         segments = pathutils._detect_segments(rnn_path)
@@ -204,7 +201,7 @@ class NeuralSimulation(object):
         path_idx = 0
 
         # Define the maximum allowed corrective speed
-        max_vel = 2.0 # [m/s]
+        max_vel = 0.1 # [m/s]
 
         # A running total of the offset of current position from the path
         total_path_offset = 0.0
@@ -228,18 +225,14 @@ class NeuralSimulation(object):
             for segment_idx, segment_end in enumerate(segments):
                 if path_idx <= segment_end:
                     curr_segment_idx = segment_idx
-
-            # Deterimine next step in neural network generated path
-            t_curr = rnn_path[path_idx,constants.G_TIME_IDX]
-            t_next = rnn_path[path_idx+1,constants.G_TIME_IDX]
-            t_diff = t_next - t_curr
+                    break
 
             pos_curr = rnn_path[path_idx,pos_start_col:pos_end_col] + total_path_offset
             pos_next = rnn_path[path_idx+1,pos_start_col:pos_end_col] + total_path_offset
             pos_diff = pos_next - pos_curr
 
             # Calculate the base velocity needed to drive the end effector
-            vel = pos_diff / t_diff
+            vel = pos_diff / dt_warped
 
             # Get the expected gate position
             pos_gate_expected = rnn_path[segments[curr_segment_idx],pos_start_col:pos_end_col]
@@ -251,8 +244,8 @@ class NeuralSimulation(object):
             gate_pos_error = pos_gate_actual - (pos_gate_expected + total_path_offset)
 
             # Calculate new velocity required to hit the target gate
-            vel_new = np.clip((gate_pos_error/t_diff)+vel, -max_vel, max_vel)
-            pos_new_diff = vel_new * t_diff
+            vel_new = np.clip((gate_pos_error/dt_warped)+vel, -max_vel, max_vel)
+            pos_new_diff = vel_new * dt_warped
 
             # Calculate the total distance that end effector has deviated from the path
             total_path_offset += pos_new_diff - pos_diff
@@ -260,18 +253,20 @@ class NeuralSimulation(object):
             # Recalculate the next position based on gate target movement
             pos_next = pos_curr + pos_new_diff
 
-            # TODO: TEMP
-            vel = (pos_next - pos_curr) / t_diff
-            self.env.set_group_linear_vel('pointer', vel)
-
             # Perform inverse kinematics to get joint angles
             pa10_joint_angles = self.kinematics.calc_inverse_kinematics(pos_curr, pos_next)
+
+            # TODO: TEMP - MOVE POINTER
+            vel = (pos_next - pos_curr) / dt_warped
+            self.env.set_group_linear_vel('pointer', vel)
+            self.env.step()
 
             # TODO: Step through the world by 1 time frame and actuate pa10 joints
             #self.env.performAction(pa10_joint_vels, fast=fast_step)
 
             # Update current time after this step
             t += dt_warped
+            path_idx += 1
 
             # Determine the difference in virtual vs actual time
             t_warped = dt - (time.time() - t_start)

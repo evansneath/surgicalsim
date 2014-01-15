@@ -66,7 +66,7 @@ class NeuralSimWorld(XODEfile):
         models.build_end_effector(self, y_top_table)
 
         # Build the Mitsubishi PA10 robotic arm
-        models.build_pa10(self, 0.0, 1.0)
+        #models.build_pa10(self, 0.0, 1.0)
 
         self.writeXODE('./'+self._name)
 

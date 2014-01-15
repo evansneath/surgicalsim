@@ -298,7 +298,7 @@ def train_lt_network():
         'sample5.dat',
     ]
 
-    testing_filename = 'sample5.dat'
+    #testing_filename = 'sample5.dat'
 
     # Get the training data and place it into a dataset
     training_dataset = None
@@ -324,18 +324,37 @@ def train_lt_network():
         this_rating = training_data[1:,constants.G_RATING_IDX]
         ratings = np.hstack((ratings, this_rating))
 
+
+    # Get the starting point information for testing
+    pos_start_idx = constants.G_POS_IDX
+    pos_end_idx = pos_start_idx + constants.G_NUM_POS_DIMS
+
+    pos_start = training_data[0,pos_start_idx:pos_end_idx]
+    
+    # Get the time sequence input data for testing
+    time_steps = 1000
+    t_input = np.linspace(start=0.0, stop=1.0, num=time_steps)
+    t_input = np.reshape(t_input, (len(t_input), 1))
+
+    gate_start_idx = constants.G_GATE_IDX
+    gate_end_idx = gate_start_idx + constants.G_NUM_GATE_INPUTS
+
+    # Pull the gate data from the last training dataset
+    gate_data = training_data[0:1,gate_start_idx:gate_end_idx]
+    gate_data = np.tile(gate_data, (time_steps, 1))
+
     # Get testing data
-    testing_file = filepath + testing_filename
-    testing_data = datastore.retrieve(testing_file)
+    #testing_file = filepath + testing_filename
+    #testing_data = datastore.retrieve(testing_file)
 
-    testing_data = pathutils.normalize_time(testing_data, t_col=constants.G_TIME_IDX)
+    #testing_data = pathutils.normalize_time(testing_data, t_col=constants.G_TIME_IDX)
 
-    # Store the testing data in a datastore object
-    testing_dataset = datastore.list_to_dataset(
-        testing_data[:,constants.G_LT_INPUT_IDX:constants.G_LT_INPUT_IDX+constants.G_LT_NUM_INPUTS],
-        testing_data[:,constants.G_LT_OUTPUT_IDX:constants.G_LT_OUTPUT_IDX+constants.G_LT_NUM_OUTPUTS],
-        dataset=None
-    )
+    ## Store the testing data in a datastore object
+    #testing_dataset = datastore.list_to_dataset(
+    #    testing_data[:,constants.G_LT_INPUT_IDX:constants.G_LT_INPUT_IDX+constants.G_LT_NUM_INPUTS],
+    #    testing_data[:,constants.G_LT_OUTPUT_IDX:constants.G_LT_OUTPUT_IDX+constants.G_LT_NUM_OUTPUTS],
+    #    dataset=None
+    #)
 
     # Build up a full ratings matrix
     nd_ratings = None
@@ -372,7 +391,7 @@ def train_lt_network():
     fig.show()
 
     # Define paramters for convergence
-    MAX_ITERATIONS = 5#100
+    MAX_ITERATIONS = 30#100
     CONVERGENCE_THRESHOLD = -0.00005
     REQUIRED_CONVERGENCE_STREAK = 10
 
@@ -397,17 +416,22 @@ def train_lt_network():
 
         # Draw the generated path after training
         print('>>> Testing Network...')
-        washout_ratio = 1.0 / len(testing_data)
-        _, generated_output, _ = net.calculateOutput(testing_dataset,
-                washout_ratio=washout_ratio)
+        #washout_ratio = 1.0 / len(testing_data)
+        #_, generated_output, _ = net.calculateOutput(testing_dataset,
+        #        washout_ratio=washout_ratio)
 
-        generated_input = testing_data[:len(generated_output),:constants.G_TOTAL_NUM_INPUTS]
+        generated_output = net.extrapolate(t_input, [pos_start], len(t_input)-1)
+        generated_output = np.vstack((pos_start, generated_output))
+
+        #generated_input = testing_data[:len(generated_output),:constants.G_TOTAL_NUM_INPUTS]
+
+        generated_input = np.hstack((t_input, gate_data))
 
         # Smash together the input and output
         generated_data = np.hstack((generated_input, generated_output))
 
         print('>>> Drawing Generated Path...')
-        pathutils.display_path(testing_axis, generated_data, testing_data, title='Generated Testing Path')
+        pathutils.display_path(testing_axis, generated_data, title='Generated Testing Path')
        
         plt.draw()
 
