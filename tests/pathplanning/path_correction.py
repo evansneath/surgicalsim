@@ -21,7 +21,10 @@ def main():
     pos_start_col = constants.G_POS_IDX
     pos_end_col = pos_start_col + constants.G_NUM_POS_DIMS
 
-    max_vel = 2.0 # [m/s]
+    max_acc = 5.0 # [m/s^2]
+    last_vel = 0.0 # [m/s]
+
+    t_total = 20 # [s]
 
     total_path_offset = 0.0
     target_error = 0.0
@@ -46,7 +49,7 @@ def main():
         next_pos = path[i+1,pos_start_col:pos_end_col] + total_path_offset
 
         # Calculate next velocity
-        dt = next_time - curr_time
+        dt = (next_time - curr_time) * t_total
         dpos = next_pos - curr_pos
         vel = dpos / dt
 
@@ -60,9 +63,18 @@ def main():
         target_error = gate_pos - (target_pos + total_path_offset)
 
         # Calculate the modifier for the velocity
-        vel_mod = np.clip(target_error/dt, -max_vel+vel, max_vel-vel)
-
+        #vel_mod = np.clip(target_error/dt, -max_vel+vel, max_vel-vel)
+        vel_mod = target_error / dt
         new_vel = vel + vel_mod
+
+        # Calculate the current acceleration of the tooltip and limit this value
+        acc = np.sqrt((((new_vel - last_vel) / dt) ** 2).sum())
+        acc = np.clip(acc, -max_acc, max_acc)
+
+        print(acc)
+
+        # Store this velocity for the next time step
+        last_vel = new_vel
 
         new_dpos = new_vel * dt
 
