@@ -49,7 +49,6 @@ def main():
         # Calculate next velocity
         dt = (t_next - t_curr)
         dx = x_next - x_curr
-        v = dx / dt
 
         # Get the final tooltip position in the current segment
         x_target = path[segments[seg_idx],pos_start_col:pos_end_col] + x_path_offset
@@ -75,7 +74,7 @@ def main():
         # Determine the ratio of the clipped norm
         ratio_unclipped = a_new_norm_clipped / a_new_norm
 
-        # TODO: Scale the acceleration vector by this ratio
+        # Scale the acceleration vector by this ratio
         a_new = a_new * ratio_unclipped
 
         # Calculate the new change in velocity
@@ -95,7 +94,8 @@ def main():
         # Store this velocity for the next time step
         v_curr = v_new
 
-        x_path_offset += dx_new - dx
+        # Recalculate the current offset
+        x_path_offset += x_new - x_next 
 
     # Plot the inputted path
     fig = plt.figure(facecolor='white')
@@ -118,7 +118,7 @@ def generate_gate_pos(t, path, segment_num):
     gate_pos = path[0,gate_start_col:gate_end_col].copy()
 
     f = 4.0
-    gate_pos += np.array([0.0, 0.02*np.sin(2.0*np.pi*f*t/t_total), 0.0])
+    #gate_pos += np.array([0.0, 0.02*np.sin(2.0*np.pi*f*t/t_total), 0.0])
 
     return gate_pos
 
