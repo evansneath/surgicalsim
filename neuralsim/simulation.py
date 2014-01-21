@@ -200,11 +200,9 @@ class NeuralSimulation(object):
 
         path_idx = 0
 
-        # Define the maximum allowed corrective speed
-        max_vel = 0.1 # [m/s]
-
-        # A running total of the offset of current position from the path
-        total_path_offset = 0.0
+        x_path_offset = np.array([0.0, 0.0, 0.0]) # [m]
+        v_curr = np.array([0.0, 0.0, 0.0]) # [m/s]
+        a_max = 0.8 # [m/s^2]
 
         while not stopped:
             t_start = time.time()
@@ -227,42 +225,61 @@ class NeuralSimulation(object):
                     curr_segment_idx = segment_idx
                     break
 
-            pos_curr = rnn_path[path_idx,pos_start_col:pos_end_col] + total_path_offset
-            pos_next = rnn_path[path_idx+1,pos_start_col:pos_end_col] + total_path_offset
-            pos_diff = pos_next - pos_curr
+            x_curr = rnn_path[path_idx,pos_start_col:pos_end_col] + x_path_offset
+            x_next = rnn_path[path_idx+1,pos_start_col:pos_end_col] + x_path_offset
 
-            # Calculate the base velocity needed to drive the end effector
-            vel = pos_diff / dt_warped
+            # Calculate next velocity
+            dx = x_next - x_curr
 
             # Get the expected gate position
-            pos_gate_expected = rnn_path[segments[curr_segment_idx],pos_start_col:pos_end_col]
+            x_target = rnn_path[segments[curr_segment_idx],pos_start_col:pos_end_col] + x_path_offset
 
             # Get the actual gate position
-            pos_gate_actual = np.array(self.env.get_body_pos('gate%d'%curr_segment_idx)).flatten()
+            x_gate = np.array(self.env.get_body_pos('gate%d'%curr_segment_idx)).flatten()
 
-            # Correct next step velocity
-            gate_pos_error = pos_gate_actual - (pos_gate_expected + total_path_offset)
+            # Calculate the new position with positional change from target to gate
+            x_new = x_next + (x_gate - x_target)
 
-            # Calculate new velocity required to hit the target gate
-            vel_new = np.clip((gate_pos_error/dt_warped)+vel, -max_vel, max_vel)
-            pos_new_diff = vel_new * dt_warped
+            # Calculate the new velocity
+            v_new = (x_new - x_curr) / dt_warped
 
-            # Calculate the total distance that end effector has deviated from the path
-            total_path_offset += pos_new_diff - pos_diff
+            # Calculate the new acceleration
+            a_new = (v_new - v_curr) / dt_warped
 
-            # Recalculate the next position based on gate target movement
-            pos_next = pos_curr + pos_new_diff
+            # Calculate the acceleration vector norm
+            a_new_norm = np.linalg.norm(a_new)
+
+            # Limit the norm vector
+            a_new_norm_clipped = np.clip(a_new_norm, -a_max, a_max)
+
+            # Determine the ratio of the clipped norm
+            ratio_unclipped = a_new_norm_clipped / a_new_norm
+
+            # Scale the acceleration vector by this ratio
+            a_new = a_new * ratio_unclipped
+
+            # Calculate the new change in velocity
+            dv_new = a_new * dt_warped
+            v_new = v_curr + dv_new
+
+            # Calculate the new change in position
+            dx_new = v_new * dt_warped
+            x_new = x_curr + dx_new
+
+            # Store this velocity for the next time step
+            v_curr = v_new
+
+            # Recalculate the current offset
+            x_path_offset += x_new - x_next
 
             # Perform inverse kinematics to get joint angles
-            pa10_joint_angles = self.kinematics.calc_inverse_kinematics(pos_curr, pos_next)
+            pa10_joint_angles = self.kinematics.calc_inverse_kinematics(x_curr, x_new)
 
-            # TODO: TEMP - MOVE POINTER
-            vel = (pos_next - pos_curr) / dt_warped
-            self.env.set_group_linear_vel('pointer', vel)
-            self.env.step()
+            # TODO: TEMP - MOVE ONLY POINTER, NO PA10
+            self.env.set_group_pos('pointer', x_new)
 
-            # TODO: Step through the world by 1 time frame and actuate pa10 joints
-            #self.env.performAction(pa10_joint_vels, fast=fast_step)
+            # Step through the world by 1 time frame and actuate pa10 joints
+            self.env.performAction(pa10_joint_angles, fast=fast_step)
 
             # Update current time after this step
             t += dt_warped

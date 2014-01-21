@@ -29,7 +29,7 @@ class PA10Kinematics(object):
 
     def calc_inverse_kinematics(self, pos_init, pos_goal):
         # TODO: Perform PA10 inverse kinematics
-        angles = None
+        angles = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         return angles
 
