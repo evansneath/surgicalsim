@@ -8,8 +8,10 @@ import surgicalsim.lib.constants as constants
 import surgicalsim.lib.pathutils as pathutils
 
 
+t_total = 20.0 # [s]
+
 def main():
-    path_file = '../../results/sample5.dat'
+    path_file = '../../results/sample4.dat'
     path = datastore.retrieve(path_file)
 
     # A list of the the segments of the optimized path
@@ -21,13 +23,9 @@ def main():
     pos_start_col = constants.G_POS_IDX
     pos_end_col = pos_start_col + constants.G_NUM_POS_DIMS
 
-    acc_max = 5.0 # [m/s^2]
-    vel_last = 0.0 # [m/s]
-
-    t_total = 20 # [s]
-
-    total_path_offset = 0.0
-    target_error = 0.0
+    x_path_offset = np.array([0.0, 0.0, 0.0]) # [m]
+    v_curr = np.array([0.0, 0.0, 0.0]) # [m/s]
+    a_max = 1.0 # [m/s^2]
 
     for i, _ in enumerate(path):
         if i == len(path) - 1:
@@ -42,55 +40,62 @@ def main():
                 break
 
         # Get current time and position
-        t_curr = path[i,constants.G_TIME_IDX]
-        t_next = path[i+1,constants.G_TIME_IDX]
+        t_curr = path[i,constants.G_TIME_IDX] * t_total
+        t_next = path[i+1,constants.G_TIME_IDX] * t_total
 
-        pos_curr = path[i,pos_start_col:pos_end_col] + total_path_offset
-        pos_next = path[i+1,pos_start_col:pos_end_col] + total_path_offset
+        x_curr = path[i,pos_start_col:pos_end_col] + x_path_offset
+        x_next = path[i+1,pos_start_col:pos_end_col] + x_path_offset
 
         # Calculate next velocity
-        dt = (t_next - t_curr) * t_total
-        dpos = pos_next - pos_curr
-        vel = dpos / dt
+        dt = (t_next - t_curr)
+        dx = x_next - x_curr
+        v = dx / dt
 
         # Get the final tooltip position in the current segment
-        target_pos = path[segments[seg_idx],pos_start_col:pos_end_col]
+        x_target = path[segments[seg_idx],pos_start_col:pos_end_col] + x_path_offset
 
         # Get current gate position
-        gate_pos = generate_gate_pos(t_curr, path, seg_idx)
+        x_gate = generate_gate_pos(t_curr, path, seg_idx)
 
-        # Calculate current offset from the target gate
-        target_error = gate_pos - (target_pos + total_path_offset)
+        # Calculate the new position with positional change from target to gate
+        x_new = x_next + (x_gate - x_target)
 
-        # Calculate the modifier for the velocity
-        #vel_mod = np.clip(target_error/dt, -max_vel+vel, max_vel-vel)
-        vel_mod = target_error / dt
-        #new_vel = vel + vel_mod
+        # Calculate the new velocity
+        v_new = (x_new - x_curr) / dt
 
-        acc = (vel - vel_last) / dt
+        # Calculate the new acceleration
+        a_new = (v_new - v_curr) / dt
 
-        # Calculate the current acceleration of the tooltip and limit this value
-        acc_mod = (((vel + vel_mod) - vel_last) / dt) - acc
-        acc_mod = np.clip(acc_mod, -acc_max+acc, acc_max-acc)
+        # Calculate the acceleration vector norm
+        a_new_norm = np.linalg.norm(a_new)
 
-        acc_new = acc + acc_mod
+        # Limit the norm vector
+        a_new_norm_clipped = np.clip(a_new_norm, -a_max, a_max)
 
-        vel_new = acc_new * dt
-        dpos_new = vel_new * dt
+        # Determine the ratio of the clipped norm
+        ratio_unclipped = a_new_norm_clipped / a_new_norm
 
-        # Store this velocity for the next time step
-        vel_last = vel_new
+        # TODO: Scale the acceleration vector by this ratio
+        a_new = a_new * ratio_unclipped
 
-        # Calculate the next position corrected to gate velocity
-        new_pos = pos_curr + dpos_new
+        # Calculate the new change in velocity
+        dv_new = a_new * dt
+        v_new = v_curr + dv_new
+
+        # Calculate the new change in position
+        dx_new = v_new * dt
+        x_new = x_curr + dx_new
 
         # Store the next movement for later
         if new_path is None:
-            new_path = new_pos
+            new_path = x_new
         else:
-            new_path = np.vstack((new_path, new_pos))
+            new_path = np.vstack((new_path, x_new))
 
-        total_path_offset += dpos_new - dpos
+        # Store this velocity for the next time step
+        v_curr = v_new
+
+        x_path_offset += dx_new - dx
 
     # Plot the inputted path
     fig = plt.figure(facecolor='white')
@@ -113,7 +118,7 @@ def generate_gate_pos(t, path, segment_num):
     gate_pos = path[0,gate_start_col:gate_end_col].copy()
 
     f = 4.0
-    gate_pos += np.array([0.0, 0.02*np.sin(2.0*np.pi*f*t), 0.0])
+    gate_pos += np.array([0.0, 0.02*np.sin(2.0*np.pi*f*t/t_total), 0.0])
 
     return gate_pos
 
