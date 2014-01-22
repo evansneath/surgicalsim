@@ -12,6 +12,9 @@ License:
 """
 import numpy as np
 
+# Mitsubishi PA10 Constants
+G_MAX_ACCEL = 0.8 # [m/s^2]
+
 # Gate Orientation Constants
 G_NUM_GATES = 8
 

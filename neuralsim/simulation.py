@@ -123,7 +123,7 @@ class NeuralSimulation(object):
 
         return
 
-    def start(self, fps=60, fast_step=False):
+    def start(self, fps=60.0, fast_step=False):
         """Start
 
         Begin the continuous event loop for the simulation. This event loop
@@ -132,7 +132,7 @@ class NeuralSimulation(object):
 
         Arguments:
             fps: The value of frames per second of the simulation.
-                (Default: 60 [Hz])
+                (Default: 60.0 [Hz])
             fast_step: If True, the ODE fast step algorithm will be used.
                 This is faster and requires less memory but is less accurate.
                 (Default: False)
@@ -166,7 +166,7 @@ class NeuralSimulation(object):
 
         # TODO: Move the PA10 end-effector to the starting position along the path
 
-        # TODO: TEMP
+        # TODO: TEMP - Move the temporary end-effector pointer to the starting position
         self.env.set_group_pos('pointer', pos_start)
 
         # Generate long-term path from initial position
@@ -202,7 +202,7 @@ class NeuralSimulation(object):
 
         x_path_offset = np.array([0.0, 0.0, 0.0]) # [m]
         v_curr = np.array([0.0, 0.0, 0.0]) # [m/s]
-        a_max = 0.8 # [m/s^2]
+        a_max = constants.G_MAX_ACCEL # [m/s^2]
 
         while not stopped:
             t_start = time.time()
