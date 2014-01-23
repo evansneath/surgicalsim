@@ -211,11 +211,11 @@ class EnvironmentInterface(ODEEnvironment):
             name: The name of the body to find.
 
         Returns:
-            A 3-item tuple containing (x, y, z) positional coordinates.
+            A 3-dimensional numpy array containing (x, y, z) positional coordinates.
         """
         body = self.get_body_by_name(name)
         pos = body.getPosition()
-        return pos
+        return np.asarray(pos)
 
     def set_body_pos(self, name, pos):
         """Set Body Position
@@ -242,11 +242,11 @@ class EnvironmentInterface(ODEEnvironment):
             name: The name of the body to find.
 
         Returns:
-            A 3-item tuple of (x, y, z) velocities.
+            A 3-dimensional numpy array containing (x, y, z) velocities.
         """
         body = self.get_body_by_name(name)
         vel = body.getAngularVel()
-        return vel
+        return np.asarray(vel)
 
     def set_body_angular_vel(self, name, vel):
         """Set Body Angular Velocity
@@ -273,11 +273,11 @@ class EnvironmentInterface(ODEEnvironment):
             name: The name of the body to find.
 
         Returns:
-            A 3-item tuple of (x, y, z) velocities.
+            A 3-dimensional numpy array containing (x, y, z) velocities.
         """
         body = self.get_body_by_name(name)
         vel = body.getLinearVel()
-        return vel
+        return np.asarray(vel)
 
     def set_body_linear_vel(self, name, vel):
         """Set Body Linear Velocity
