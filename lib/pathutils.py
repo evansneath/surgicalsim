@@ -270,14 +270,8 @@ def fix_starting_pos(data):
     Returns:
         The corrected path data.
     """
-    # Calculate gate indices
-    gate_pos_start_idx = (constants.G_GATE_IDX +
-                          ((constants.G_NUM_GATES - 1)
-                           * constants.G_NUM_GATE_DIMS))
-    gate_pos_end_idx = gate_pos_start_idx + constants.G_NUM_POS_DIMS
-
     # Get starting gate position
-    gate_pos = data[0,gate_pos_start_idx:gate_pos_end_idx]
+    gate_pos = get_path_gate_pos(data, 0, constants.G_NUM_GATES-1)
 
     # Calculate tooltip indices
     tt_pos_start_idx = constants.G_POS_IDX
@@ -287,6 +281,40 @@ def fix_starting_pos(data):
     data[0,tt_pos_start_idx:tt_pos_end_idx] = gate_pos
 
     return data
+
+
+def get_path_time(path, path_idx):
+    """Get Time
+    """
+    t_idx = constants.G_TIME_IDX
+    t = path[path_idx, t_idx]
+
+    return t
+
+
+def get_path_tooltip_pos(path, path_idx):
+    """Get Tooltip Position
+    """
+    tooltip_pos_start_idx = constants.G_POS_IDX
+    tooltip_pos_end_idx = tooltip_pos_start_idx + constants.G_NUM_POS_DIMS
+
+    tooltip_pos = path[path_idx, tooltip_pos_start_idx:tooltip_pos_end_idx]
+
+    return tooltip_pos
+
+
+def get_path_gate_pos(path, path_idx, seg_idx):
+    """Get Gate Position
+    """
+    # Determine start and end indexes of the position of current gate
+    gate_pos_start_idx = (constants.G_GATE_IDX + (seg_idx
+                          * constants.G_NUM_GATE_DIMS))
+    gate_pos_end_idx = gate_pos_start_idx + constants.G_NUM_POS_DIMS
+
+    # Get starting gate position
+    gate_pos = path[path_idx ,gate_pos_start_idx:gate_pos_end_idx]
+
+    return gate_pos
 
 
 def split_segments(data):

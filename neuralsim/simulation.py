@@ -156,10 +156,10 @@ class NeuralSimulation(object):
         pos_end_col = pos_start_col + constants.G_NUM_POS_DIMS
 
         # Get the initial path position (center of gate7)
-        pos_start = np.array(self.env.get_body_pos('gate7')) # [m]
+        pos_start = self.env.get_body_pos('gate7') # [m]
 
         # Get the first position of the PA10 at rest
-        pos_init = np.array(self.env.get_body_pos('tooltip')) # [m]
+        pos_init = self.env.get_body_pos('tooltip') # [m]
 
         # Calculate the new required joint angles of the PA10
         #pa10_joint_angles = self.kinematics.calc_inverse_kinematics(pos_init, pos_start)
@@ -225,20 +225,25 @@ class NeuralSimulation(object):
                     curr_segment_idx = segment_idx
                     break
 
-            x_curr = rnn_path[path_idx,pos_start_col:pos_end_col] + x_path_offset
-            x_next = rnn_path[path_idx+1,pos_start_col:pos_end_col] + x_path_offset
+            x_curr = pathutils.get_path_tooltip_pos(rnn_path, path_idx) + x_path_offset
+            x_next = pathutils.get_path_tooltip_pos(rnn_path, path_idx+1) + x_path_offset
 
             # Calculate next velocity
             dx = x_next - x_curr
 
             # Get the expected gate position
-            x_target = rnn_path[segments[curr_segment_idx],pos_start_col:pos_end_col] + x_path_offset
+            x_gate_expected = pathutils.get_path_gate_pos(
+                    rnn_path,
+                    segments[curr_segment_idx],
+                    curr_segment_idx
+            )
 
             # Get the actual gate position
-            x_gate = np.array(self.env.get_body_pos('gate%d'%curr_segment_idx)).flatten()
+            x_gate_actual = self.env.get_body_pos('gate%d'%curr_segment_idx)
 
-            # Calculate the new position with positional change from target to gate
-            x_new = x_next + (x_gate - x_target)
+            # Calculate the new position from change to new gate position
+            dx_gate = x_gate_actual - (x_gate_expected + x_path_offset)
+            x_new = x_next + dx_gate
 
             # Calculate the new velocity
             v_new = (x_new - x_curr) / dt_warped
