@@ -146,7 +146,7 @@ def build_test_article(xode, randomize=True):
         _build_gate(xode, i, y_top_table, gate_height[i], gate_pos[i],
                 gate_rot[i])
 
-    xode.affixToEnvironment('table')
+    #xode.affixToEnvironment('table')
 
     return y_top_table
 

@@ -19,6 +19,7 @@ Classes:
 # Import external modules
 import os
 import time
+
 import numpy as np
 
 # Import application modules
@@ -35,9 +36,15 @@ import surgicalsim.lib.constants as constants
 import surgicalsim.lib.datastore as datastore
 
 
-def oscillation_test(t, amp, freq):
-    y = amp * np.cos(t * freq * 2.0 * np.pi)
+def oscillation(t, amp, freq):
+    y = (amp * np.cos(t * freq * 2.0 * np.pi))
     return y
+
+def shaker_table(t, table_pos):
+    new_y = oscillation(t, 0.0002, 1.0/5.0)
+    table_pos += np.array([0.0, new_y, 0.0])
+
+    return table_pos
 
 
 class NeuralSimulation(object):
@@ -193,7 +200,11 @@ class NeuralSimulation(object):
         rnn_path = np.hstack((t_input, gate_data, rnn_path))
 
         # Save generated path for later examination
-        datastore.store(rnn_path, './generated.dat')
+        datastore.store(rnn_path, './rnn-path.dat')
+
+        # Define a variable to hold the final path (with real-time correction)
+        final_path = rnn_path[:-1].copy()
+        path_saved = False
 
         # Detect all path segments between gates in the generated path
         segments = pathutils._detect_segments(rnn_path)
@@ -215,6 +226,13 @@ class NeuralSimulation(object):
             # Pause the simulation if we are at the end
             if path_idx == len(rnn_path) - 1 or paused:
                 self.env.step(paused=True, fast=fast_step)
+
+                # If we have really hit the end of the simulation, save/plot the path
+                if not paused and not path_saved:
+                    # Save the final data to a file
+                    datastore.store(final_path, './final-path.dat')
+                    path_saved = True
+
                 continue
 
             # Determine the current path segment
@@ -271,6 +289,15 @@ class NeuralSimulation(object):
             dx_new = v_new * dt_warped
             x_new = x_curr + dx_new
 
+            # Modify final path data with current tooltip and gate positions
+            pathutils.set_path_time(final_path, path_idx, t)
+            pathutils.set_path_tooltip_pos(final_path, path_idx, x_curr)
+
+            for gate_idx in range(constants.G_NUM_GATES):
+                gate_name = 'gate%d' % gate_idx
+                x_gate = self.env.get_body_pos(gate_name)
+                pathutils.set_path_gate_pos(final_path, path_idx, gate_idx, x_gate)
+
             # Store this velocity for the next time step
             v_curr = v_new
 
@@ -282,6 +309,14 @@ class NeuralSimulation(object):
 
             # TODO: TEMP - MOVE ONLY POINTER, NO PA10
             self.env.set_group_pos('pointer', x_new)
+
+            # TODO: Move the table with y-axis oscillation
+            x_table_curr = self.env.get_body_pos('table')
+            x_table_next = shaker_table(t, x_table_curr)
+
+            v_table = (x_table_next - x_table_curr) / dt_warped
+
+            self.env.set_body_pos('table', x_table_next)#v_table)
 
             # Step through the world by 1 time frame and actuate pa10 joints
             self.env.performAction(pa10_joint_angles, fast=fast_step)
