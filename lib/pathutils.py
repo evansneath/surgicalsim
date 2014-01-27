@@ -479,6 +479,10 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--fix',
                         help='modify the initial position of the path',
                         action='store_true')
+    parser.add_argument('-i', '--title',
+                        help='specify output plot title',
+                        action='store',
+                        default='Path')
     parser.add_argument('-o', '--out',
                         help='alternate path output',
                         action='store',
@@ -513,7 +517,7 @@ if __name__ == '__main__':
     fig = plt.figure(facecolor='white')
     axis = fig.gca(projection='3d')
 
-    display_path(axis, main_path, reference_paths, title='Path')
+    display_path(axis, main_path, reference_paths, title=args.title)
 
     plt.show()
 
