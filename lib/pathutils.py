@@ -36,7 +36,7 @@ __g_end_trim_index = 0
 __g_trim_ok = False
 
 
-def display_path(axis, path, trim1=None, trim2=None, title='End Effector Path'):
+def display_path(axis, path, dotted_paths=[], title='End Effector Path'):
     """Display Path
 
     Plots the path to maintain and path to eliminate in an easy to read
@@ -44,9 +44,9 @@ def display_path(axis, path, trim1=None, trim2=None, title='End Effector Path'):
 
     Arguments:
         path: The time sequence array of the path to maintain.
-        trim1: The time sequence array of the path to trim. (Default: None)
-        trim2: The time sequence array of the path to trim. (Default: None)
-        title: The title of the plot
+        dotted_paths: A list of time sequence arrays to display in dotted red.
+            (Default: [])
+        title: The title of the plot. (Default: 'End Effector Path')
     """
     assert len(path) > 0
 
@@ -69,31 +69,38 @@ def display_path(axis, path, trim1=None, trim2=None, title='End Effector Path'):
     # Print the main tooltip path
     axis.plot(path_out[:,0], path_out[:,1], -path_out[:,2], 'b-', zdir='y')
 
-    # Print the static gate position
+    # Print the starting gate positions
     for gate in range(constants.G_NUM_GATES):
-        start = 1 + (gate * constants.G_NUM_GATE_DIMS)
-        end = start + constants.G_NUM_GATE_DIMS
+        start = constants.G_GATE_IDX + (gate * constants.G_NUM_GATE_DIMS)
+        end = start + constants.G_NUM_POS_DIMS
 
-        gate_pos = path_in[:,start:end]
+        gate_pos = path_in[0,start:end]
 
-        axis.plot(gate_pos[:1,0], gate_pos[:1,1], -gate_pos[:1,2], color='black',
+        axis.plot([gate_pos[0]], [gate_pos[1]], [-gate_pos[2]], color='black',
+                marker='+', zdir='y')
+
+    # Print the gate positions at point of closest approach
+    segments = _detect_segments(path)
+    for seg_idx, seg_end in enumerate(segments):
+        start = constants.G_GATE_IDX + (seg_idx * constants.G_NUM_GATE_DIMS)
+        end = start + constants.G_NUM_POS_DIMS
+
+        gate_pos = path_in[seg_end,start:end] 
+
+        axis.plot([gate_pos[0]], [gate_pos[1]], [-gate_pos[2]], color='red',
                 marker='+', zdir='y')
 
     # Print any other paths
-    if trim1 is not None and len(trim1) > 0:
-        _, trim1_path = datastore.split_data(trim1,
+    for dotted_path in dotted_paths:
+        if dotted_path is None or len(dotted_path) == 0:
+            continue
+
+        _, dotted_path_out = datastore.split_data(dotted_path,
                 constants.G_TOTAL_NUM_INPUTS)
 
-        axis.plot(trim1_path[:,0], trim1_path[:,1], -trim1_path[:,2],
+        axis.plot(dotted_path_out[:,0], dotted_path_out[:,1], -dotted_path_out[:,2],
                 'r--', zdir='y')
-
-    if trim2 is not None and len(trim2) > 0:
-        _, trim2_path = datastore.split_data(trim2,
-                constants.G_TOTAL_NUM_INPUTS)
-
-        axis.plot(trim2_path[:,0], trim2_path[:,1], -trim2_path[:,2],
-                'r--', zdir='y')
-
+        
     return
 
 
@@ -156,8 +163,7 @@ def trim_path(path):
         display_path(
             axis,
             path[__g_start_trim_index:__g_end_trim_index],
-            trim1=path[:__g_start_trim_index],
-            trim2=path[__g_end_trim_index:],
+            dotted_paths=[path[:__g_start_trim_index], path[__g_end_trim_index:]],
             title='Trim Path'
         )
 
@@ -182,8 +188,7 @@ def trim_path(path):
         display_path(
             axis,
             path[__g_start_trim_index:__g_end_trim_index],
-            trim1=path[:__g_start_trim_index],
-            trim2=path[__g_end_trim_index:],
+            dotted_paths=[path[:__g_start_trim_index], path[__g_end_trim_index:]],
             title='Trim Path'
         )
 
@@ -292,6 +297,15 @@ def get_path_time(path, path_idx):
     return t
 
 
+def set_path_time(path, path_idx, t):
+    """Set Time
+    """
+    t_idx = constants.G_TIME_IDX
+    path[path_idx, t_idx] = t
+
+    return
+
+
 def get_path_tooltip_pos(path, path_idx):
     """Get Tooltip Position
     """
@@ -301,6 +315,17 @@ def get_path_tooltip_pos(path, path_idx):
     tooltip_pos = path[path_idx, tooltip_pos_start_idx:tooltip_pos_end_idx]
 
     return tooltip_pos
+
+
+def set_path_tooltip_pos(path, path_idx, pos):
+    """Set Tooltip Position
+    """
+    tooltip_pos_start_idx = constants.G_POS_IDX
+    tooltip_pos_end_idx = tooltip_pos_start_idx + constants.G_NUM_POS_DIMS
+
+    path[path_idx, tooltip_pos_start_idx:tooltip_pos_end_idx] = pos
+
+    return
 
 
 def get_path_gate_pos(path, path_idx, seg_idx):
@@ -315,6 +340,20 @@ def get_path_gate_pos(path, path_idx, seg_idx):
     gate_pos = path[path_idx ,gate_pos_start_idx:gate_pos_end_idx]
 
     return gate_pos
+
+
+def set_path_gate_pos(path, path_idx, seg_idx, pos):
+    """Set Gate Position
+    """
+    # Determine start and end indexes of the position of current gate
+    gate_pos_start_idx = (constants.G_GATE_IDX + (seg_idx
+                          * constants.G_NUM_GATE_DIMS))
+    gate_pos_end_idx = gate_pos_start_idx + constants.G_NUM_POS_DIMS
+
+    # Set starting gate position
+    path[path_idx ,gate_pos_start_idx:gate_pos_end_idx] = pos
+
+    return
 
 
 def split_segments(data):
@@ -380,8 +419,7 @@ def rate_segments(data):
         display_path(
             axis,
             data[segment_start:segment_end],
-            trim1=data[:segment_start],
-            trim2=data[segment_end:],
+            dotted_paths=[data[:segment_start], data[segment_end:]],
             title=('Segment %d'%(idx+1))
         )
 
@@ -445,35 +483,43 @@ if __name__ == '__main__':
                         help='alternate path output',
                         action='store',
                         default=None)
-    parser.add_argument('source',
-                        help='source file containing path data')
+    parser.add_argument('paths', nargs='+',
+                        help='file(s) containing path data')
     args = parser.parse_args()
 
-    path = datastore.retrieve(args.source)
+    main_file = args.paths[0]
+    main_path = datastore.retrieve(main_file)
+
+    # Plot all reference paths
+    reference_paths = []
+
+    for reference_file in args.paths[1:]:
+        reference_data = datastore.retrieve(reference_file)
+        reference_paths.append(reference_data)
 
     # Trim if requested
     if args.trim:
-        path = trim_path(path)
+        main_path = trim_path(main_path)
 
     # Normalize time if requested
     if args.normalize:
-        path = normalize_time(path)
+        main_path = normalize_time(main_path)
 
     # Fix starting position if requested
     if args.fix:
-        path = fix_starting_pos(path)
+        main_path = fix_starting_pos(main_path)
 
     # Plot the inputted path
     fig = plt.figure(facecolor='white')
     axis = fig.gca(projection='3d')
 
-    display_path(axis, path, title='Path')
+    display_path(axis, main_path, reference_paths, title='Path')
 
     plt.show()
 
     if args.out is not None:
-        datastore.store(path, args.out)
+        datastore.store(main_path, args.out)
     else:
-        datastore.store(path, args.source)
+        datastore.store(main_path, args.paths[0])
 
     exit()
