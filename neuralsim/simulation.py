@@ -37,14 +37,14 @@ import surgicalsim.lib.datastore as datastore
 
 
 def oscillation(t, amp, freq):
-    y = (amp * np.cos(t * freq * 2.0 * np.pi))
+    y = amp * np.sin(t * freq * 2.0 * np.pi)
     return y
 
 def shaker_table(t, table_pos):
-    new_y = oscillation(t, 0.0002, 1.0/5.0)
-    table_pos += np.array([0.0, new_y, 0.0])
+    new_y = oscillation(t, 0.02, 1.0/5.0)
+    new_pos = table_pos + np.array([0.0, new_y, 0.0])
 
-    return table_pos
+    return new_pos
 
 
 class NeuralSimulation(object):
@@ -215,6 +215,9 @@ class NeuralSimulation(object):
         v_curr = np.array([0.0, 0.0, 0.0]) # [m/s]
         a_max = constants.G_MAX_ACCEL # [m/s^2]
 
+        # Get the static table position
+        x_table = self.env.get_body_pos('table')
+
         while not stopped:
             t_start = time.time()
 
@@ -310,13 +313,9 @@ class NeuralSimulation(object):
             # TODO: TEMP - MOVE ONLY POINTER, NO PA10
             self.env.set_group_pos('pointer', x_new)
 
-            # TODO: Move the table with y-axis oscillation
-            x_table_curr = self.env.get_body_pos('table')
-            x_table_next = shaker_table(t, x_table_curr)
-
-            v_table = (x_table_next - x_table_curr) / dt_warped
-
-            self.env.set_body_pos('table', x_table_next)#v_table)
+            # Move the table with y-axis oscillation
+            x_table_next = shaker_table(t, x_table)
+            self.env.set_body_pos('table', x_table_next)
 
             # Step through the world by 1 time frame and actuate pa10 joints
             self.env.performAction(pa10_joint_angles, fast=fast_step)
