@@ -249,9 +249,6 @@ class NeuralSimulation(object):
             x_curr = pathutils.get_path_tooltip_pos(rnn_path, path_idx) + x_path_offset
             x_next = pathutils.get_path_tooltip_pos(rnn_path, path_idx+1) + x_path_offset
 
-            # Calculate next velocity
-            dx = x_next - x_curr
-
             # Get the expected gate position
             x_gate_expected = pathutils.get_path_gate_pos(
                     rnn_path,
@@ -278,8 +275,11 @@ class NeuralSimulation(object):
             # Limit the norm vector
             a_new_norm_clipped = np.clip(a_new_norm, -a_max, a_max)
 
-            # Determine the ratio of the clipped norm
-            ratio_unclipped = a_new_norm_clipped / a_new_norm
+            # Determine the ratio of the clipped norm, protect against divide by zero
+            if a_new_norm != 0.0:
+                ratio_unclipped = a_new_norm_clipped / a_new_norm
+            else:
+                ratio_unclipped = 0.0
 
             # Scale the acceleration vector by this ratio
             a_new = a_new * ratio_unclipped

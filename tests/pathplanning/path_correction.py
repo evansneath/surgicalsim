@@ -40,12 +40,10 @@ def main():
         t_curr = pathutils.get_path_time(path, i) * t_total
         t_next = pathutils.get_path_time(path, i+1) * t_total
 
+        dt = (t_next - t_curr)
+
         x_curr = pathutils.get_path_tooltip_pos(path, i) + x_path_offset
         x_next = pathutils.get_path_tooltip_pos(path, i+1) + x_path_offset
-
-        # Calculate next velocity
-        dt = (t_next - t_curr)
-        dx = x_next - x_curr
 
         # Get the expected gate position at this timestep
         x_gate_expected = pathutils.get_path_gate_pos(path, segments[seg_idx], seg_idx)
