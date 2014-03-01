@@ -1,8 +1,8 @@
-Surgical Sim
+SurgicalSim
 ============
 
 ##Description
-An artificial neural network test environment for the Mitsubishi PA-10 robotic arm.
+An artificial neural network test environment for semi-autonomous telesurgery.
 
 ##Author
 Created by [Evan Sneath](http://github.com/evansneath)
