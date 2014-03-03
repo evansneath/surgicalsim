@@ -23,6 +23,8 @@ import argparse
 # Import application modules
 from simulation import NeuralSimulation
 
+import surgicalsim.lib.constants as constants
+
 
 def parse_arguments():
     """Parse Arguments
@@ -40,11 +42,11 @@ def parse_arguments():
     )
     parser.add_argument(
             '-r', '--randomize', action='store_true',
-            help='randomize test article gate placement'
+            help='randomize test article gate position and orientation'
     )
     parser.add_argument(
             '-f', '--fast', action='store_true',
-            help='use fast step function (for slower machines)'
+            help='use fast simulation steps (for slower machines)'
     )
     parser.add_argument(
             '-n', '--network', action='store',
@@ -73,12 +75,12 @@ def main():
         sim = NeuralSimulation(args.randomize, args.network, args.verbose)
 
         # Continue to execute the main simulation loop
-        print '>>> Running... (ctrl+c to exit)'
+        print '>>> Running... (ctrl+c or q to exit)'
 
         if args.fast:
             print '>>> Stepping fast!'
 
-        sim.start(fast_step=args.fast)
+        sim.start(fps=constants.G_ENVIRONMENT_FPS, fast_step=args.fast)
     except KeyboardInterrupt as e:
         # Except the keyboard interrupt as the valid way of leaving the loop
         print '>>> Cleaning up...'

@@ -45,15 +45,15 @@ def parse_arguments():
     )
     parser.add_argument(
             '-r', '--randomize', action='store_true',
-            help='randomize test article gate placement'
+            help='randomize test article gate position and orientation'
     )
     parser.add_argument(
-            '-n', '--network', action='store_true',
+            '-c', '--controller', action='store_true',
             help='controller is non-local. ip/port info will be prompted'
     )
     parser.add_argument(
             '-o', '--outfile', action='store', default='out.dat',
-            help='target path for the tooltip pickled data'
+            help='target file for the captured path data'
     )
 
     args = parser.parse_args()
@@ -77,8 +77,14 @@ def process_path(data):
     # Prompt the user to trim the start and end of the path
     data = pathutils.trim_path(data)
 
+    # Zero out the trimmed time data
+    data = pathutils.zero_time(data)
+
     # Prompt the user to rate all detected segments of the path
     data = pathutils.rate_segments(data)
+
+    # Snap the starting position to the starting marker
+    data = pathutils.fix_starting_pos(data)
 
     return data
 
@@ -96,11 +102,11 @@ def main():
     try:
         # Initialize all module of the simulation
         print('>>> Initializing...')
-        sim = TrainingSimulation(args.randomize, args.network, args.verbose)
+        sim = TrainingSimulation(args.randomize, args.controller, args.verbose)
 
         # Continue to execute the main simulation loop
-        print('>>> Running... (ctrl+c to exit)')
-        sim.start()
+        print('>>> Running... (ctrl+c or q to exit)')
+        sim.start(fps=constants.G_ENVIRONMENT_FPS)
     except KeyboardInterrupt as e:
         # Except the keyboard interrupt as the valid way of leaving the loop
         if sim is not None and len(sim.saved_data):
