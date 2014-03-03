@@ -54,20 +54,22 @@ class ViewerInterface(object):
 
         return
 
-    def update(self):
-        """Update Viewer Interface
+    @property
+    def is_dead(self):
+        """Is Dead Property
 
-        Updates the interface with useful information about the viewer
-        status and control signals passed back from the viewer.
+        Determines if the viewer process has been killed or not.
+
+        Returns:
+            True if dead, False otherwise.
         """
         # Poll the process. This updates the return code
         self._process.poll()
 
-        if self._process.returncode is None:
-            # TODO: The process is dead. Let the main loop know
-            pass
+        if self._process.returncode == 0:
+            return True
 
-        return
+        return False
 
     def start(self):
         """Start Viewer
@@ -79,9 +81,6 @@ class ViewerInterface(object):
             # Detect the current file path of this module
             module_file_path = inspect.getfile(inspect.currentframe())
 
-            # TODO: When the process is spawned, send over all arguments
-            # passed into the interface object
-
             # Launch this own file's main function in a new process
             self._process = subprocess.Popen([module_file_path])
 
@@ -92,7 +91,7 @@ class ViewerInterface(object):
 
         Terminates the viewer process if it was started.
         """
-        if self._process is not None:
+        if not self.is_dead and self._process is not None:
             # Kill the viewer process
             self._process.terminate()
 

@@ -41,7 +41,10 @@ def oscillation(t, amp, freq):
     return y
 
 def shaker_table(t, table_pos):
-    new_y = oscillation(t, 0.02, 1.0/5.0)
+    amplitude = constants.G_TABLE_OSCILLATION_AMP
+    frequency = constants.G_TABLE_OSCILLATION_FREQ
+
+    new_y = oscillation(t, amplitude, frequency)
     new_pos = table_pos + np.array([0.0, new_y, 0.0])
 
     return new_pos
@@ -99,11 +102,12 @@ class NeuralSimulation(object):
         # Determine if we need to train the neural network
         if rnn_xml is not None:
             print('>>> Loading RNN from file')
-            self.rnn = network.LongTermPlanningNetwork()
+            self.rnn = network.PathPlanningNetwork()
             self.rnn.load_network_from_file(rnn_xml)
         else:
             print('>>> Training new RNN')
-            self.rnn = network.train_lt_network()
+            self.rnn = network.train_path_planning_network()
+            self.rnn.save_network_to_file(constants.G_RNN_XML_OUT)
 
         print('>>> Starting kinematics engine')
         self.kinematics = PA10Kinematics()
@@ -114,7 +118,7 @@ class NeuralSimulation(object):
                 xode_filename='./'+XODE_FILENAME+'.xode',
                 realtime=False,
                 verbose=verbose,
-                gravity=0.0
+                gravity=constants.G_ENVIRONMENT_GRAVITY
         )
 
         # Start viewer
@@ -122,7 +126,6 @@ class NeuralSimulation(object):
         self.viewer = ViewerInterface(verbose=verbose)
         self.viewer.start()
 
-        # TODO: TEMP
         # Set up all grouped bodies in the environment
         self.env.groups = {
             'pointer': ['tooltip', 'stick'],
@@ -130,7 +133,7 @@ class NeuralSimulation(object):
 
         return
 
-    def start(self, fps=60.0, fast_step=False):
+    def start(self, fps, fast_step=False):
         """Start
 
         Begin the continuous event loop for the simulation. This event loop
@@ -139,7 +142,6 @@ class NeuralSimulation(object):
 
         Arguments:
             fps: The value of frames per second of the simulation.
-                (Default: 60.0 [Hz])
             fast_step: If True, the ODE fast step algorithm will be used.
                 This is faster and requires less memory but is less accurate.
                 (Default: False)
@@ -185,8 +187,9 @@ class NeuralSimulation(object):
         # Add the initial condition point back onto the data
         rnn_path = np.vstack((pos_start, rnn_path))
 
-        # Retrieve standard gate position/orientation data
-        file_path = '../results/sample1.dat'
+        # Retrieve one set of standard gate position/orientation data
+        file_path = pathutils.list_data_files(constants.G_TRAINING_DATA_DIR)[0]
+
         gate_data = datastore.retrieve(file_path)
 
         gate_start_idx = constants.G_GATE_IDX
@@ -200,7 +203,7 @@ class NeuralSimulation(object):
         rnn_path = np.hstack((t_input, gate_data, rnn_path))
 
         # Save generated path for later examination
-        datastore.store(rnn_path, './rnn-path.dat')
+        datastore.store(rnn_path, constants.G_RNN_STATIC_PATH_OUT)
 
         # Define a variable to hold the final path (with real-time correction)
         final_path = rnn_path[:-1].copy()
@@ -226,6 +229,10 @@ class NeuralSimulation(object):
 
             self.env.set_dt(dt_warped)
 
+            # Determine if the viewer is stopped. Then we can quit
+            if self.viewer.is_dead:
+                break
+
             # Pause the simulation if we are at the end
             if path_idx == len(rnn_path) - 1 or paused:
                 self.env.step(paused=True, fast=fast_step)
@@ -233,9 +240,15 @@ class NeuralSimulation(object):
                 # If we have really hit the end of the simulation, save/plot the path
                 if not paused and not path_saved:
                     # Save the final data to a file
-                    datastore.store(final_path, './final-path.dat')
+                    datastore.store(final_path, constants.G_RNN_DYNAMIC_PATH_OUT)
                     path_saved = True
 
+                continue
+
+            # Not a very elegant solution to pausing at the start, but it works
+            if t <= 1000.0:
+                self.env.step(paused=True, fast=fast_step)
+                t += dt_warped
                 continue
 
             # Determine the current path segment
@@ -313,8 +326,12 @@ class NeuralSimulation(object):
             # TODO: TEMP - MOVE ONLY POINTER, NO PA10
             self.env.set_group_pos('pointer', x_new)
 
-            # Move the table with y-axis oscillation
-            x_table_next = shaker_table(t, x_table)
+            if constants.G_TABLE_IS_OSCILLATING:
+                # Move the table with y-axis oscillation
+                x_table_next = shaker_table(t, x_table)
+            else:
+                x_table_next = x_table
+
             self.env.set_body_pos('table', x_table_next)
 
             # Step through the world by 1 time frame and actuate pa10 joints

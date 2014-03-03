@@ -86,7 +86,7 @@ class TrainingSimulation(object):
                 xode_filename='./'+XODE_FILENAME+'.xode',
                 realtime=False,
                 verbose=verbose,
-                gravity=0.0
+                gravity=constants.G_ENVIRONMENT_GRAVITY
         )
 
         # Set up all grouped bodies in the environment
@@ -107,8 +107,8 @@ class TrainingSimulation(object):
             ip = raw_input('<<< Enter host ip: ')
             port = int(raw_input('<<< Enter tcp port: '))
         else:
-            ip = '127.0.0.1'
-            port = 5555
+            ip = constants.G_IP_LOCAL_DEFAULT
+            port = constants.G_PORT_DEFAULT
 
         # Try to connect to the Phantom Omni controller
         self.omni.connect(ip, port)
@@ -117,7 +117,7 @@ class TrainingSimulation(object):
 
         return
 
-    def start(self, fps=60):
+    def start(self, fps):
         """Start
 
         Begin the continuous event loop for the simulation. This event loop
@@ -147,8 +147,9 @@ class TrainingSimulation(object):
             self.env.set_dt(dt_warped)
             self.omni.set_dt(dt_warped)
 
-            # TODO: Update the viewer with the latest control signals
-            #viewer.update()
+            # Determine if the viewer is stopped. Then we can quit
+            if self.viewer.is_dead:
+                break
 
             if paused:
                 self.env.step(paused=True)
