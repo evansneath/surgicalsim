@@ -2,7 +2,7 @@ SurgicalSim
 ============
 
 ##Description
-An artificial neural network test environment for semi-autonomous telesurgery.
+An artificial neural network test environment toolchain for semi-autonomous telesurgery.
 
 ##Author
 Created by [Evan Sneath](http://github.com/evansneath)
@@ -14,12 +14,14 @@ This software licensed under the
 ##Dependencies
 In order to run, this software requires the following dependencies:
 
-* Python 2.7
-* Numpy
-* Scipy
-* PyBrain
-* PyODE
-* PyOpenGL
+| Name     | Version                                         |
+| -------- | ----------------------------------------------- |
+| Python   | 2.7                                             |
+| Numpy    | 1.7.1                                           |
+| Scipy    | 0.12.0                                          |
+| PyBrain  | [Custom](https://github.com/evansneath/pybrain) |
+| PyODE    | 1.2.1                                           |
+| PyOpenGL | 3.0.2                                           |
 
-To easily create a new virtual environment and install all dependencies on OS X,
-run this [magical script](https://gist.github.com/evansneath/5678215).
+## User/Developer Manual
+A detailed manual for the toolchain can be read in [`MANUAL.md`](https://github.com/evansneath/surgicalsim/blob/master/MANUAL.md).
