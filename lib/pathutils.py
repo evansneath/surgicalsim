@@ -13,9 +13,21 @@ License:
 
 Functions:
     display_path: Displays the path and gates of a set of data.
+    zero_time: Zeroes the time wrt the minimum time value.
     normalize_time: Normalizes the time column of a set of data.
-    trim_path: Provides a user prompt wizard for trimming the
-        start and end sets of data
+    trim_path: Provides a user prompt wizard for trimming the start and end
+        sets of data.
+    list_data_files: Provides a list of all .dat files present in a given
+        directory.
+    fix_starting_pos: Snaps the starting path position to the first marker.
+    get_path_time: Return the time at a specific time step index.
+    set_path_time: Sets the time at a specific time step index.
+    get_path_tooltip_pos: Return the tooltip position at a specific time step.
+    set_path_tooltip_pos: Sets the tooltip position at a specific time step.
+    get_path_gate_pos: Return the position of a gate at a specific time step.
+    set_path_gate_pos: Sets the position of a gate at a specific time step.
+    split_segments: Returns a list of segment end-points given a full path.
+    rate_segments: Prompts for segment ratings and plots segments.
 """
 
 import numpy as np
@@ -52,10 +64,10 @@ def display_path(axis, path, dotted_paths=[], title='End Effector Path'):
 
     axis.clear()
     
-    axis.set_title(title)
-    axis.set_xlabel('Position X Axis [m]')
-    axis.set_ylabel('Position Z Axis [m]')
-    axis.set_zlabel('Position Y Axis [m]')
+    axis.set_title(title, fontsize=25)
+    axis.set_xlabel('Position X Axis [m]', fontsize=20)
+    axis.set_ylabel('Position Z Axis [m]', fontsize=20)
+    axis.set_zlabel('Position Y Axis [m]', fontsize=20)
 
     axis.set_xlim3d((-0.3, 0.3))
     axis.set_ylim3d((-0.3, 0.3))
@@ -77,7 +89,7 @@ def display_path(axis, path, dotted_paths=[], title='End Effector Path'):
         gate_pos = path_in[0,start:end]
 
         axis.plot([gate_pos[0]], [gate_pos[1]], [-gate_pos[2]], color='black',
-                marker='+', zdir='y')
+                marker='o', zdir='y', markersize=5)
 
     # Print the gate positions at point of closest approach
     segments = _detect_segments(path)
@@ -88,7 +100,7 @@ def display_path(axis, path, dotted_paths=[], title='End Effector Path'):
         gate_pos = path_in[seg_end,start:end] 
 
         axis.plot([gate_pos[0]], [gate_pos[1]], [-gate_pos[2]], color='red',
-                marker='+', zdir='y')
+                marker='o', zdir='y', markersize=5)
 
     # Print any other paths
     for dotted_path in dotted_paths:
@@ -104,6 +116,24 @@ def display_path(axis, path, dotted_paths=[], title='End Effector Path'):
     return
 
 
+def zero_time(data, t_col=0):
+    """Zero Time
+
+    Reduces all time column elements by the minimum value, bringing the
+    minimum to zero.
+
+    Arguments:
+        t_col: The column index of the time step data. (Default: 0)
+
+    Returns:
+        Numpy data array with the time step column zeroed.
+    """
+    # Draw the first time step down to zero if it is non-zero
+    data[:, t_col] = data[:, t_col] - np.min(data[:, t_col])
+
+    return data
+
+
 def normalize_time(data, t_col=0):
     """Normalize Time
 
@@ -115,9 +145,6 @@ def normalize_time(data, t_col=0):
     Returns:
         Numpy data array with the time step column normalized.
     """
-    # Draw the first time step down to zero if it is non-zero
-    data[:, t_col] = data[:, t_col] - np.min(data[:, t_col])
-
     # Normalize the time step data to a max of 1.0
     data[:, t_col] = data[:, t_col] / np.max(data[:, t_col])
 
@@ -217,6 +244,25 @@ def trim_path(path):
         path = path[__g_start_trim_index:__g_end_trim_index]
 
     return path
+
+
+def list_data_files(dir):
+    """List Data Files
+
+    Given a directory, find all .dat files and return the list.
+
+    Arguments:
+        dir: A string denoting a directory to search.
+
+    Returns:
+        A list of all .dat files present in that directory
+    """
+    dat_files = []
+    for file in os.listdir(dir):
+        if os.path.isfile(file) and file.split('.')[-1] == 'dat':
+            dat_files.append(file)
+
+    return dat_files
 
 
 def _detect_segments(data):
@@ -427,17 +473,21 @@ def rate_segments(data):
         plt.draw()
 
         while True:
-            rating = raw_input('Enter segment %d rating (0.0 to 1.0): '%(idx+1))
+            rating = raw_input('Enter segment %d rating (1 to 5): '%(idx+1))
 
             try:
-                rating = float(rating)
+                rating = int(rating)
             except ValueError:
-                print('Invalid input. (0.0 to 1.0)')
+                print('Invalid input. (1 to 5)')
                 continue
 
-            if rating < 0.0 or rating > 1.0:
-                print('Invalid input. (0.0 to 1.0)')
+            if rating < 1 or rating > 5:
+                print('Invalid input. (1 to 5)')
                 continue
+
+            # Normalize rating between 0.0 and 1.0
+            rating = float(rating)
+            rating = (rating - 1.0) / 4.0
 
             # Create the rating for each epoch in the segment
             segment_rating = rating * np.ones((segment_end-segment_start, 1))
@@ -465,7 +515,7 @@ if __name__ == '__main__':
     a path dataset and plotted.
 
     Usage:
-        ./path_trimmer.py [-t|-n|-f|-o <out>] <source>
+        ./pathutils.py [-h] [-t] [-n] [-f] [-i TITLE] [-o OUT] paths [paths ...] 
     """
     import argparse
 
