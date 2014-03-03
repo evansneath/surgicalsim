@@ -12,9 +12,12 @@ License:
     Open Software License v3.0
 
 Classes:
-    LongTermPlanningNetwork: Recurrent LSTM neural network class for path prediction.
-    LongTermPlanningTrainer: Neural network trainer for path prediction network.
+    PathPlanningNetwork: Recurrent LSTM neural network class for path prediction.
+    PathPlanningTrainer: Neural network trainer for path prediction network.
 """
+
+import os
+import os.path
 
 import copy
 import numpy as np
@@ -33,7 +36,7 @@ import surgicalsim.lib.datastore as datastore
 import surgicalsim.lib.pathutils as pathutils
 
 
-class LongTermPlanningNetwork(EvolinoNetwork):
+class PathPlanningNetwork(EvolinoNetwork):
     """PathPlanningNetwork class
 
     The primary path planning network for the surgicalsim testing environment.
@@ -53,22 +56,22 @@ class LongTermPlanningNetwork(EvolinoNetwork):
 
         Arguments:
             indim: Number of inputs to the neural network.
-                (Default: G_LT_NUM_INPUTS listed in surgicalsim.lib.constants)
+                (Default: G_RNN_NUM_INPUTS listed in surgicalsim.lib.constants)
             outdim: Number of outputs to the neural network.
-                (Default: G_LT_NUM_OUTPUTS listed in surgicalsim.lib.constants)
+                (Default: G_RNN_NUM_OUTPUTS listed in surgicalsim.lib.constants)
             hiddim: Number of hidden nodes in the neural network.
-                (Default: G_NUM_HIDDEN_NODES listed in surgicalsim.lib.constants)
+                (Default: G_RNN_NUM_HIDDEN_NODES listed in surgicalsim.lib.constants)
         """
         if indim is None:
-            indim = constants.G_LT_NUM_INPUTS
+            indim = constants.G_RNN_NUM_INPUTS
 
         if outdim is None:
-            outdim = constants.G_LT_NUM_OUTPUTS
+            outdim = constants.G_RNN_NUM_OUTPUTS
 
         if hiddim is None:
-            hiddim = constants.G_NUM_HIDDEN_NODES
+            hiddim = constants.G_RNN_NUM_HIDDEN_NODES
 
-        super(LongTermPlanningNetwork, self).__init__(indim, outdim, hiddim)
+        super(PathPlanningNetwork, self).__init__(indim, outdim, hiddim)
 
         return
 
@@ -89,7 +92,7 @@ class LongTermPlanningNetwork(EvolinoNetwork):
         """Load Network from File
 
         Using a NetworkWriter written file, data from the saved network
-        will be reconstituted into a new LongTermPlanningNetwork class.
+        will be reconstituted into a new PathPlanningNetwork class.
         This is used to load saved networks.
 
         Arguments:
@@ -100,10 +103,10 @@ class LongTermPlanningNetwork(EvolinoNetwork):
         return
 
 
-class LongTermPlanningTrainer(EvolinoTrainer):
+class PathPlanningTrainer(EvolinoTrainer):
     """PathPlanningTrainer class
 
-    Responsible for training the LongTermPlanningNetwork neural network
+    Responsible for training the PathPlanningNetwork neural network
     for use in the surgicalsim testing environment.
 
     Inherits:
@@ -112,8 +115,8 @@ class LongTermPlanningTrainer(EvolinoTrainer):
     pass
 
 
-def train_lt_network():
-    """Train Long-Term Network
+def train_path_planning_network():
+    """Train Path Planning Network
 
     Trains an Evolino LSTM neural network for long-term path planning for
     use in the surgical simulator.
@@ -122,17 +125,10 @@ def train_lt_network():
         A copy of the fully-trained path planning neural network.
     """
     # Build up the list of files to use as training set
-    filepath = '../results/'
+    training_dir = constants.G_TRAINING_DATA_DIR
 
-    training_filenames = [
-        'sample1.dat',
-        'sample2.dat',
-        'sample3.dat',
-        'sample4.dat',
-        'sample5.dat',
-    ]
-
-    #testing_filename = 'sample5.dat'
+    # Find all data files in the training data directory
+    training_files = pathutils.list_data_files(training_dir)
 
     # Get the training data and place it into a dataset
     training_dataset = None
@@ -140,8 +136,7 @@ def train_lt_network():
     # Store all training set ratings
     ratings = np.array([])
 
-    for training_filename in training_filenames:
-        training_file = filepath + training_filename
+    for training_file in training_files:
         training_data = datastore.retrieve(training_file)
 
         # Normalize the time input of the data
@@ -149,8 +144,8 @@ def train_lt_network():
 
         # Add this data sample to the training dataset
         training_dataset = datastore.list_to_dataset(
-            training_data[:,constants.G_LT_INPUT_IDX:constants.G_LT_INPUT_IDX+constants.G_LT_NUM_INPUTS],
-            training_data[:,constants.G_LT_OUTPUT_IDX:constants.G_LT_OUTPUT_IDX+constants.G_LT_NUM_OUTPUTS],
+            training_data[:,constants.G_RNN_INPUT_IDX:constants.G_RNN_INPUT_IDX+constants.G_RNN_NUM_INPUTS],
+            training_data[:,constants.G_RNN_OUTPUT_IDX:constants.G_RNN_OUTPUT_IDX+constants.G_RNN_NUM_OUTPUTS],
             dataset=training_dataset
         )
 
@@ -165,8 +160,8 @@ def train_lt_network():
 
     pos_start = training_data[0,pos_start_idx:pos_end_idx]
     
-    # Get the time sequence input data for testing
-    time_steps = 1000
+    # Generate the time sequence input data for testing
+    time_steps = constants.G_RNN_GENERATED_TIME_STEPS
     t_input = np.linspace(start=0.0, stop=1.0, num=time_steps)
     t_input = np.reshape(t_input, (len(t_input), 1))
 
@@ -177,24 +172,11 @@ def train_lt_network():
     gate_data = training_data[0:1,gate_start_idx:gate_end_idx]
     gate_data = np.tile(gate_data, (time_steps, 1))
 
-    # Get testing data
-    #testing_file = filepath + testing_filename
-    #testing_data = datastore.retrieve(testing_file)
-
-    #testing_data = pathutils.normalize_time(testing_data, t_col=constants.G_TIME_IDX)
-
-    ## Store the testing data in a datastore object
-    #testing_dataset = datastore.list_to_dataset(
-    #    testing_data[:,constants.G_LT_INPUT_IDX:constants.G_LT_INPUT_IDX+constants.G_LT_NUM_INPUTS],
-    #    testing_data[:,constants.G_LT_OUTPUT_IDX:constants.G_LT_OUTPUT_IDX+constants.G_LT_NUM_OUTPUTS],
-    #    dataset=None
-    #)
-
     # Build up a full ratings matrix
     nd_ratings = None
 
     for rating in ratings:
-        this_rating = rating * np.ones((1, constants.G_LT_NUM_OUTPUTS))
+        this_rating = rating * np.ones((1, constants.G_RNN_NUM_OUTPUTS))
 
         if nd_ratings is None:
             nd_ratings = this_rating
@@ -203,10 +185,10 @@ def train_lt_network():
 
     # Create network and trainer
     print('>>> Building Network...')
-    net = LongTermPlanningNetwork()
+    net = PathPlanningNetwork()
 
     print('>>> Initializing Trainer...')
-    trainer = LongTermPlanningTrainer(
+    trainer = PathPlanningTrainer(
         evolino_network=net,
         dataset=training_dataset,
         nBurstMutationEpochs=10,
@@ -223,11 +205,6 @@ def train_lt_network():
     testing_axis = fig.add_subplot(111, projection='3d')
 
     fig.show()
-
-    # Define paramters for convergence
-    MAX_ITERATIONS = 30#100
-    CONVERGENCE_THRESHOLD = -0.00005
-    REQUIRED_CONVERGENCE_STREAK = 10
 
     idx = 0
     current_convergence_streak = 0
@@ -250,14 +227,9 @@ def train_lt_network():
 
         # Draw the generated path after training
         print('>>> Testing Network...')
-        #washout_ratio = 1.0 / len(testing_data)
-        #_, generated_output, _ = net.calculateOutput(testing_dataset,
-        #        washout_ratio=washout_ratio)
 
         generated_output = net.extrapolate(t_input, [pos_start], len(t_input)-1)
         generated_output = np.vstack((pos_start, generated_output))
-
-        #generated_input = testing_data[:len(generated_output),:constants.G_TOTAL_NUM_INPUTS]
 
         generated_input = np.hstack((t_input, gate_data))
 
@@ -269,18 +241,18 @@ def train_lt_network():
        
         plt.draw()
 
-        if current_fitness > CONVERGENCE_THRESHOLD:
+        if current_fitness > constants.G_RNN_CONVERGENCE_THRESHOLD:
             # We've encountered a fitness higher than threshold
             current_convergence_streak += 1
         else:
             # Streak ended. Reset the streak counter
             current_convergence_streak = 0
 
-        if current_convergence_streak == REQUIRED_CONVERGENCE_STREAK:
+        if current_convergence_streak == constants.G_RNN_REQUIRED_CONVERGENCE_STREAK:
             print('>>> Convergence Achieved: %d Iterations' % idx)
             break
-        elif idx == MAX_ITERATIONS - 1:
-            print('>>> Reached maximum iterations (%d)' % MAX_ITERATIONS)
+        elif idx == constants.G_RNN_MAX_ITERATIONS - 1:
+            print('>>> Reached maximum iterations (%d)' % constants.G_RNN_MAX_ITERATIONS)
             break
 
         idx += 1
@@ -310,12 +282,9 @@ if __name__ == '__main__':
     import sys
     import os.path
 
-    # Train the long-term neural network
-    net = train_lt_network()
+    net = train_path_planning_network()
 
-    DEFAULT_FILENAME = './lt-network.xml'
-
-    filename = DEFAULT_FILENAME
+    filename = constants.G_RNN_XML_OUT
 
     if len(sys.argv) > 1:
         if not os.path.exists(sys.argv[1]):

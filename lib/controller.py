@@ -23,8 +23,7 @@ import struct
 import numpy as np
 import multiprocessing
 
-
-_G_OMNI_MSG_FMT = '!iiddddddd'
+import surgicalsim.lib.constants as constants
 
 
 class PhantomOmniData(object):
@@ -78,16 +77,11 @@ class PhantomOmniData(object):
         and populates the PhantomOmniData attributes with the unpacked,
         formatted data.
 
-        Globals:
-            _G_OMNI_MSG_FMT: The Phantom Omni data message format.
-
         Arguments:
             raw_data: Raw, upacked data received from the Phantom Omni.
         """
-        global _G_OMNI_MSG_FMT
-
         # Unpack the byte data with struct module
-        unpacked_data = struct.unpack(_G_OMNI_MSG_FMT, raw_data)
+        unpacked_data = struct.unpack(constants.G_CONTROLLER_MSG_FMT, raw_data)
 
         # Load all of the unpacked data into class attributes for easy lookup
         self.docked = unpacked_data[0] == True
@@ -138,9 +132,6 @@ class PhantomOmniInterface(object):
 
         Creates a new PhantomOmniInterface object.
 
-        Globals:
-            _G_OMNI_MSG_FMT: The Phantom Omni data message format.
-
         Arguments:
             dt: The difference in time between timesteps used to calculate
                 linear and angular velocity.
@@ -149,7 +140,7 @@ class PhantomOmniInterface(object):
 
         # Create a shared array of the length of one message. This will be
         # used to store the most current data from the Phantom Omni controller
-        data_len = struct.calcsize(_G_OMNI_MSG_FMT)
+        data_len = struct.calcsize(constants.G_CONTROLLER_MSG_FMT)
 
         # NOTE: Type 'b' = byte (actually signed char). data_len = array size
         self._cur_data = multiprocessing.Array('b', data_len, lock=True)

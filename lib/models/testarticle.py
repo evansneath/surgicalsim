@@ -29,12 +29,13 @@ def build_end_effector(xode, y_offset):
         y_offset: The top of the table under the end effector. This is
             used to calculate relative positions to the test article.
     """
-    # Determine position of the end effector (0.02 is half of gate width)
-    y_pos_end_effector = y_offset + 0.1 - 0.02
+    # Determine position of the end effector (height of marker center)
+    y_pos_end_effector = (y_offset + constants.G_GATE_HEIGHT -
+            (constants.G_GATE_WIDTH / 2.0))
 
     # Define the tooltip properties
-    m_tooltip = 10.0 # [g]
-    r_tooltip = 0.005 # [m]
+    m_tooltip = constants.G_END_TOOLTIP_MASS
+    r_tooltip = constants.G_END_TOOLTIP_RADIUS
 
     siz_tooltip = np.array([r_tooltip])
     pos_tooltip = np.array([0.0, y_pos_end_effector, 0.0])
@@ -46,9 +47,9 @@ def build_end_effector(xode, y_offset):
             has_gravity=False)
 
     # Define the stick properties
-    m_stick = 10.0 # [g]
-    l_stick = 0.05 # [m]
-    r_stick = 0.0025 # [m]
+    m_stick = constants.G_END_STICK_MASS
+    l_stick = constants.G_END_STICK_LENGTH
+    r_stick = constants.G_END_STICK_RADIUS
 
     siz_stick = np.array([r_stick, l_stick])
     pos_stick = pos_tooltip + np.array([0.0, l_stick/2.0, 0.0])
@@ -73,15 +74,12 @@ def build_test_article(xode, randomize=True):
         randomize: Determines if the gates of the test article should be
             randomized with position, height, and angle. (Default: True)
     """
-    y_pos_test_article = 0.03
+    y_pos_test_article = constants.G_TABLE_Y_POS
+    m_table = constants.G_TABLE_MASS
 
-    m_table = 100.0 # [g]
-
-    # Define the length of one side of the square table
-    l_table = 0.4 # [m]
-
-    # Define the height of the table
-    h_table = 0.01 # [m]
+    # Define the length/height of the square table
+    l_table = constants.G_TABLE_LENGTH # [m]
+    h_table = constants.G_TABLE_HEIGHT # [m]
 
     # Calculate the top of the table so gate generation is easier
     y_top_table = h_table + y_pos_test_article
@@ -111,7 +109,7 @@ def build_test_article(xode, randomize=True):
     # Define standard normalized angles for each gate. Zero degrees is
     # along the positive X axis. Rotation is clockwise. 0.5 is 180 degrees
     # (or pi radians) rotation
-    gate_norm_rot = constants.G_GATE_NORM_ROT + 0.25
+    gate_norm_rot = constants.G_GATE_NORM_ROT 
 
     # Define the rotation multiplier to unnormalize the rotation value
     gate_rot_multiplier = 2.0 * np.pi
@@ -125,16 +123,19 @@ def build_test_article(xode, randomize=True):
     # Calculate the actual gate rotation
     gate_rot = gate_norm_rot * gate_rot_multiplier
 
+    # Randomize gate height, position, rotation if flag is set
     if randomize:
-        # Randomize gate height, position, rotation
-        height_rand_limit = 0.0 # [m]
-        pos_rand_limit = 0.025 # [m]
-        rot_rand_limit = np.deg2rad(0.0) # [rad]
+        # Randomize height (y-direction)
+        height_rand = (constants.G_GATE_HEIGHT_RAND *
+                ((np.random.rand(8) - 0.5) * 2.0))
 
-        # Find the random offsets for each gate's attributes
-        height_rand = height_rand_limit * ((np.random.rand(8) - 0.5) * 2.0)
-        pos_rand = pos_rand_limit * ((np.random.rand(8, 2) - 0.5) * 2.0)
-        rot_rand = rot_rand_limit * ((np.random.rand(8) - 0.5) * 2.0)
+        # Randomize position (x,z-direction)
+        pos_rand = (constants.G_GATE_POS_RAND *
+                ((np.random.rand(8, 2) - 0.5) * 2.0))
+
+        # Randomize marker rotation
+        rot_rand = (constants.G_GATE_ROT_RAND *
+                ((np.random.rand(8) - 0.5) * 2.0))
 
         # Offset the gate attributes
         gate_height += height_rand
@@ -163,7 +164,7 @@ def _build_gate(xode, num, top_table, gate_height, gate_pos, gate_rot):
         gate_rot: The rotation of the gate in [rad].
     """
     # Define the width of the gate entry point
-    gate_width = 0.04
+    gate_width = constants.G_GATE_WIDTH
 
     top_table += 0.0001
 
@@ -181,7 +182,7 @@ def _build_gate(xode, num, top_table, gate_height, gate_pos, gate_rot):
 
     gate_name = 'gate' + str(num)
 
-    marker_radius = 0.005
+    marker_radius = constants.G_GATE_POST_RADIUS
     marker_size = [marker_radius]
     marker_mass = 0.5
     marker_eul = np.array([0.0, 0.0, 0.0])
