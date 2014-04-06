@@ -30,6 +30,8 @@ Functions:
     rate_segments: Prompts for segment ratings and plots segments.
 """
 
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -259,8 +261,9 @@ def list_data_files(dir):
     """
     dat_files = []
     for file in os.listdir(dir):
-        if os.path.isfile(file) and file.split('.')[-1] == 'dat':
-            dat_files.append(file)
+        if (os.path.isfile(os.path.join(dir, file)) and
+                file.split('.')[-1] == 'dat'):
+            dat_files.append(os.path.join(dir, file))
 
     return dat_files
 

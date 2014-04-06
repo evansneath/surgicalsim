@@ -10,7 +10,10 @@ Author:
 License:
     Open Software License v3.0
 """
+
 import numpy as np
+import os.path
+import inspect
 
 
 # ----------------------------------------------------------------------------
@@ -153,8 +156,8 @@ G_TOTAL_COLS = G_TOTAL_NUM_INPUTS + G_TOTAL_NUM_OUTPUTS + G_TOTAL_NUM_MISC
 # ----------------------------------------------------------------------------
 # Artificial neural network constants
 
-G_SURGICALSIM_DIR = '~/Workspace/surgicalsim/'
-G_TRAINING_DATA_DIR = G_SURGICALSIM_DIR + 'data/'
+# NOTE: This is user-defined and should probably be changed for your needs
+G_TRAINING_DATA_DIR = '/Users/evan/Workspace/surgicalsim/data'
 
 G_RNN_XML_OUT = 'trained-rnn.xml'
 
