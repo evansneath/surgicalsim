@@ -17,10 +17,10 @@ cd ${INSTALL_DIR}
 # 1 ---------- INSTALL UTILITIES ----------
 
 # 1.1 Install development utilities
-sudo apt-get -y install git vim-gnome
+sudo apt-get -y install git vim-gnome curl
 
 # 1.2 Install Python utility packages
-sudo apt-get -y install python-setuptools cython
+sudo apt-get -y install python-setuptools cython python-dev
 
 
 # 2 ---------- INSTALL PYTHON PACKAGES ----------
