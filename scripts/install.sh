@@ -47,7 +47,7 @@ cd ${INSTALL_DIR}
 sudo rm -fr ode-0.13*
 
 # 2.3 Install Python OpenGL bindings
-sudo apt-get -y install python-opengl
+sudo apt-get -y install python-opengl python-tk
 
 # 2.4 Install PyODE (deprecated library) for XODE modules
 # (Check out the repo)
