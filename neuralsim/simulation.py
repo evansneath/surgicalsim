@@ -121,10 +121,13 @@ class NeuralSimulation(object):
                 gravity=constants.G_ENVIRONMENT_GRAVITY
         )
 
+        # NOTE: This functionality is not avilable at the moment on the lab
+        #       machine. Fix OpenGL support and re-enable viewer.
+
         # Start viewer
-        print('>>> Starting viewer')
-        self.viewer = ViewerInterface(verbose=verbose)
-        self.viewer.start()
+        #print('>>> Starting viewer')
+        #self.viewer = ViewerInterface(verbose=verbose)
+        #self.viewer.start()
 
         # Set up all grouped bodies in the environment
         self.env.groups = {
