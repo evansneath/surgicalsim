@@ -95,12 +95,13 @@ The path data, once processed, is saved to the default of `out.dat` in the `/tra
 
 The data present in this file is a [NumPy array](http://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html) with size of NxM (N being the number of time steps recorded, and M being the number of parameters per time step). The arrays can be programmatically saved and loaded using the respective [numpy.save](http://docs.scipy.org/doc/numpy/reference/generated/numpy.save.html) and [numpy.load](http://docs.scipy.org/doc/numpy/reference/generated/numpy.load.html) functions. The path parameters saved for each time step are listed in the table below:
 
-| Name                           | Data Type   | Units   | Description                                             |
-| ------------------------------ | ----------- | ------- | ------------------------------------------------------- |
-| Time                           | Double      | Seconds | Current time of the data point from start               |
-| Gate Position/Orientation (x8) | Double (x4) | Meters  | The _x_, _y_, _z_, _θ_ for each gate in procedure order |
-| End Effector Position          | Double (x3) | Meters  | The _x_, _y_, _z_ position of the end effector          |
-| Rating                         | Double      | N/A     | The normalized rating (0.0 to 1.0) of the current step  |
+| Name                           | Data Type   | Units   | Description                                                  |
+| ------------------------------ | ----------- | ------- | ------------------------------------------------------------ |
+| Time                           | Double      | Seconds | Current time of the data point from start                    |
+| Gate Position/Orientation (x8) | Double (x4) | Meters  | The _x_, _y_, _z_, _θ_ for each gate in procedure order      |
+| End Effector Position          | Double (x3) | Meters  | The _x_, _y_, _z_ position of the end effector               |
+| End Effector Orientation       | Double (x3) | Radians | The _alpha_, _beta_, _gamma_ orientation of the end effector |
+| Rating                         | Double      | N/A     | The normalized rating (0.0 to 1.0) of the current step       |
 
 The data should be stored in the `/data` directory in the SurgicalSim root for easy neural network training.
 
