@@ -50,7 +50,7 @@ __g_end_trim_index = 0
 __g_trim_ok = False
 
 
-def display_path(axis, path, dotted_paths=[], title='End Effector Path'):
+def display_path(axis, path, dotted_paths=[], title='End Effector Path', label_axes=True, two_dimensional=False):
     """Display Path
 
     Plots the path to maintain and path to eliminate in an easy to read
@@ -66,14 +66,20 @@ def display_path(axis, path, dotted_paths=[], title='End Effector Path'):
 
     axis.clear()
     
-    axis.set_title(title, fontsize=25)
-    axis.set_xlabel('Position X Axis [m]', fontsize=20)
-    axis.set_ylabel('Position Z Axis [m]', fontsize=20)
-    axis.set_zlabel('Position Y Axis [m]', fontsize=20)
+    if title:
+        axis.set_title(title, fontsize=25)
 
-    axis.set_xlim3d((-0.3, 0.3))
-    axis.set_ylim3d((-0.3, 0.3))
-    axis.set_zlim3d((0.0, 0.2))
+    if label_axes:
+        axis.set_xlabel('Position X Axis [m]', fontsize=20)
+        axis.set_ylabel('Position Z Axis [m]', fontsize=20)
+
+        if not two_dimensional:
+            axis.set_zlabel('Position Y Axis [m]', fontsize=20)
+
+    if not two_dimensional:
+        axis.set_xlim3d((-0.3, 0.3))
+        axis.set_ylim3d((-0.3, 0.3))
+        axis.set_zlim3d((0.0, 0.2))
 
     axis.grid(True)
 
@@ -81,7 +87,11 @@ def display_path(axis, path, dotted_paths=[], title='End Effector Path'):
     path_in, path_out = datastore.split_data(path, constants.G_TOTAL_NUM_INPUTS)
 
     # Print the main tooltip path
-    axis.plot(path_out[:,0], path_out[:,1], -path_out[:,2], 'b-', zdir='y')
+
+    if not two_dimensional:
+        axis.plot(path_out[:,0], path_out[:,1], -path_out[:,2], 'b-', zdir='y')
+    else:
+        axis.plot(path_out[:,0], -path_out[:,2], 'b-')
 
     # Print the starting gate positions
     for gate in range(constants.G_NUM_GATES):
@@ -90,8 +100,12 @@ def display_path(axis, path, dotted_paths=[], title='End Effector Path'):
 
         gate_pos = path_in[0,start:end]
 
-        axis.plot([gate_pos[0]], [gate_pos[1]], [-gate_pos[2]], color='black',
-                marker='o', zdir='y', markersize=5)
+        if not two_dimensional:
+            axis.plot([gate_pos[0]], [gate_pos[1]], [-gate_pos[2]], color='black',
+                    marker='o', zdir='y', markersize=5)
+        else:
+            axis.plot([gate_pos[0]], [-gate_pos[2]], color='black',
+                    marker='o', markersize=5)
 
     # Print the gate positions at point of closest approach
     segments = _detect_segments(path)
@@ -101,8 +115,13 @@ def display_path(axis, path, dotted_paths=[], title='End Effector Path'):
 
         gate_pos = path_in[seg_end,start:end] 
 
-        axis.plot([gate_pos[0]], [gate_pos[1]], [-gate_pos[2]], color='red',
-                marker='o', zdir='y', markersize=5)
+        if not two_dimensional:
+            axis.plot([gate_pos[0]], [gate_pos[1]], [-gate_pos[2]], color='red',
+                    marker='o', zdir='y', markersize=5)
+        else:
+            axis.plot([gate_pos[0]], [-gate_pos[2]], color='red',
+                    marker='o', markersize=5)
+
 
     # Print any other paths
     for dotted_path in dotted_paths:
@@ -112,9 +131,13 @@ def display_path(axis, path, dotted_paths=[], title='End Effector Path'):
         _, dotted_path_out = datastore.split_data(dotted_path,
                 constants.G_TOTAL_NUM_INPUTS)
 
-        axis.plot(dotted_path_out[:,0], dotted_path_out[:,1], -dotted_path_out[:,2],
-                'r--', zdir='y')
-        
+        if not two_dimensional:
+            axis.plot(dotted_path_out[:,0], dotted_path_out[:,1], -dotted_path_out[:,2],
+                    'r--', zdir='y')
+        else:
+            axis.plot(dotted_path_out[:,0], -dotted_path_out[:,2],
+                    'r--', zdir='y')
+       
     return
 
 
@@ -386,7 +409,7 @@ def get_path_gate_pos(path, path_idx, seg_idx):
     gate_pos_end_idx = gate_pos_start_idx + constants.G_NUM_POS_DIMS
 
     # Get starting gate position
-    gate_pos = path[path_idx ,gate_pos_start_idx:gate_pos_end_idx]
+    gate_pos = path[path_idx, gate_pos_start_idx:gate_pos_end_idx]
 
     return gate_pos
 
@@ -400,7 +423,7 @@ def set_path_gate_pos(path, path_idx, seg_idx, pos):
     gate_pos_end_idx = gate_pos_start_idx + constants.G_NUM_POS_DIMS
 
     # Set starting gate position
-    path[path_idx ,gate_pos_start_idx:gate_pos_end_idx] = pos
+    path[path_idx, gate_pos_start_idx:gate_pos_end_idx] = pos
 
     return
 
@@ -433,6 +456,40 @@ def split_segments(data):
 
     return segment_list
 
+
+def get_ratings(data):
+    """Get Ratings
+
+    Given the full path data, return the ratings of each detected
+    segment.
+
+    Arguments:
+        data: The path data from TrainingSim.
+
+    Returns:
+        Numpy array of each segment rating (Ratings in format: 0.0 - 1.0)
+    """
+    ratings = None
+
+    # Find all segment ends
+    segment_ends = _detect_segments(data)
+
+    for segment_end in segment_ends:
+        # Get the rating for each segment end
+        segment_rating = data[segment_end][constants.G_RATING_IDX]
+
+        # Convert from (0.0-1.0) to (1-4) scale
+        segment_rating = (segment_rating * 4) + 1
+        segment_rating = int(segment_rating)
+
+        # Add it to the list
+        if ratings is None:
+            ratings = segment_rating
+        else:
+            ratings = np.vstack((ratings, segment_rating))
+
+    # Return the ratings for the path
+    return ratings
 
 def rate_segments(data):
     """Rate Segments
@@ -535,13 +592,22 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--title',
                         help='specify output plot title',
                         action='store',
-                        default='Path')
+                        default=None)
     parser.add_argument('-o', '--out',
                         help='alternate path output',
                         action='store',
                         default=None)
     parser.add_argument('paths', nargs='+',
                         help='file(s) containing path data')
+    parser.add_argument('-d', '--two-dimensional',
+                        help='show 2d representation of the path (x, z)',
+                        action='store_true')
+    parser.add_argument('-a', '--label-axes',
+                        help='show plot axes labels',
+                        action='store_true')
+    parser.add_argument('-r', '--ratings',
+                        help='print out segment ratings along with the plot',
+                        action='store_true')
     args = parser.parse_args()
 
     main_file = args.paths[0]
@@ -566,11 +632,23 @@ if __name__ == '__main__':
     if args.fix:
         main_path = fix_starting_pos(main_path)
 
+    if args.ratings:
+        ratings = get_ratings(main_path)
+
+        for idx, rating in enumerate(ratings):
+            print('Segment %d - Rating %d/5' % (idx, rating))
+
     # Plot the inputted path
     fig = plt.figure(facecolor='white')
-    axis = fig.gca(projection='3d')
 
-    display_path(axis, main_path, reference_paths, title=args.title)
+    if not args.two_dimensional:
+        axis = fig.gca(projection='3d')
+    else:
+        axis = fig.gca()
+
+    axis.set_aspect('equal')
+
+    display_path(axis, main_path, reference_paths, title=args.title, label_axes=args.label_axes, two_dimensional=args.two_dimensional)
 
     plt.show()
 

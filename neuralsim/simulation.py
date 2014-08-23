@@ -160,10 +160,6 @@ class NeuralSimulation(object):
         # increased in order to maintain real-time constraints
         t_overshoot = 0.0
 
-        # Calculate the indices of the end effector position columns
-        pos_start_col = constants.G_POS_IDX
-        pos_end_col = pos_start_col + constants.G_NUM_POS_DIMS
-
         # Get the initial path position (center of gate7)
         pos_start = self.env.get_body_pos('gate7') # [m]
 
