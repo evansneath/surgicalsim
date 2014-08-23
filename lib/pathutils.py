@@ -400,6 +400,32 @@ def set_path_tooltip_pos(path, path_idx, pos):
     return
 
 
+def get_path_tooltip_orientation(path, path_idx):
+    """Get Tooltip Orientation
+    """
+    tooltip_orientation_start_idx = constants.G_ORIENTATION_IDX
+    tooltip_orientation_end_idx = (tooltip_orientation_start_idx +
+        constants.G_NUM_ORIENTATION_DIMS)
+
+    tooltip_orientation = (
+        path[path_idx, tooltip_orientation_start_idx:tooltip_orientation_end_idx]
+    )
+
+    return tooltip_orientation
+
+
+def get_path_tooltip_orientation(path, path_idx, orientation):
+    """Get Tooltip Orientation
+    """
+    tooltip_orientation_start_idx = constants.G_ORIENTATION_IDX
+    tooltip_orientation_end_idx = (tooltip_orientation_start_idx +
+        constants.G_NUM_ORIENTATION_DIMS)
+
+    path[path_idx, tooltip_orientation_start_idx:tooltip_orientation_end_idx] = orientation
+
+    return
+
+
 def get_path_gate_pos(path, path_idx, seg_idx):
     """Get Gate Position
     """

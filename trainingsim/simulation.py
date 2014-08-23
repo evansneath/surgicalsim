@@ -172,6 +172,7 @@ class TrainingSimulation(object):
             # Determine the output data to record
             sample_output = np.array([
                 self.env.get_body_pos('tooltip'),
+                self.env.get_body_rot('tooltip'),
             ]).flatten()
 
             # Join the sample input/output

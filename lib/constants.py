@@ -122,7 +122,8 @@ G_GATE_ROT_RAND = np.deg2rad(0.0) # [rad]
 [0] - t - normalized time value (0.0-1.0)
 [1-32] - gate positions ((x,y,z,theta) * 8)
 [33-36] - tooltip position (x,y,z)
-[37] - rating column (0.0-1.0)
+[37-39] - tooltip rotation (alpha,beta,gamma)
+[40] - rating column (0.0-1.0)
 """
 
 # Used for calculating and retrieving path matrix data
@@ -137,12 +138,14 @@ G_NUM_GATE_DIMS = 4
 G_NUM_GATE_INPUTS = G_NUM_GATE_DIMS * G_NUM_GATES
 G_TOTAL_NUM_INPUTS = G_NUM_TIME_INPUTS + G_NUM_GATE_INPUTS
 
-G_POS_IDX = G_TOTAL_NUM_INPUTS
-
 # Outputs
+G_POS_IDX = G_TOTAL_NUM_INPUTS
 G_NUM_POS_DIMS = 3
 
-G_TOTAL_NUM_OUTPUTS = G_NUM_POS_DIMS
+G_ROT_IDX = G_POS_IDX + G_NUM_POS_DIMS
+G_NUM_ROT_DIMS = 3
+
+G_TOTAL_NUM_OUTPUTS = G_NUM_POS_DIMS + G_NUM_ORIENTATION_DIMS
 
 # Rating
 G_RATING_IDX = G_TOTAL_NUM_INPUTS + G_TOTAL_NUM_OUTPUTS

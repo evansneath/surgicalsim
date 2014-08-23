@@ -233,6 +233,27 @@ class EnvironmentInterface(ODEEnvironment):
         body.setPosition(tuple(pos))
         return
 
+    def get_body_rot(self, name):
+        """Get Body Rotation
+
+        Gets the current rotation (euler angles) of a given body.
+
+        Arguments:
+            name: The name of the body to find.
+
+        Returns:
+            A 3-dimensional numpy array containing (alpha, beta, gamma) rotational
+                euler angles.
+        """
+        body = self.get_body_by_name(name)
+        q = body.getQuaternion()
+
+        alpha = np.arctan2(2*(q[0]*q[1] + q[2]*q[3]), 1 - 2*(pow(q[1], 2)+pow(q[2], 2)))
+        beta = np.arcsin(2*(q[0]*q[2] - q[3]*q[1]))
+        gamma = np.arctan2(2*(q[0]*q[3] + q[1]*q[2]), 1 - 2*(pow(q[2], 2)+pow(q[3], 2)))
+
+        return np.asarray((alpha, beta, gamma))
+
     def get_body_angular_vel(self, name):
         """Get Body Angular Velocity
 
