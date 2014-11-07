@@ -121,8 +121,8 @@ G_GATE_ROT_RAND = np.deg2rad(0.0) # [rad]
 """Path Data Format
 [0] - t - normalized time value (0.0-1.0)
 [1-32] - gate positions ((x,y,z,theta) * 8)
-[33-36] - tooltip position (x,y,z)
-[37] - rating column (0.0-1.0)
+[33-35] - tooltip position (x,y,z)
+[36] - rating column (0.0-1.0)
 """
 
 # Used for calculating and retrieving path matrix data

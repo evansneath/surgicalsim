@@ -155,10 +155,10 @@ def train_path_planning_network():
 
 
     # Get the starting point information for testing
-    pos_start_idx = constants.G_POS_IDX
-    pos_end_idx = pos_start_idx + constants.G_NUM_POS_DIMS
+    output_start_idx = constants.G_RNN_OUTPUT_IDX
+    output_end_idx = output_start_idx + constants.G_RNN_NUM_OUTPUTS
 
-    pos_start = training_data[0,pos_start_idx:pos_end_idx]
+    output_initial_condition = training_data[0,output_start_idx:output_end_idx]
     
     # Generate the time sequence input data for testing
     time_steps = constants.G_RNN_GENERATED_TIME_STEPS
@@ -228,8 +228,8 @@ def train_path_planning_network():
         # Draw the generated path after training
         print('>>> Testing Network...')
 
-        generated_output = net.extrapolate(t_input, [pos_start], len(t_input)-1)
-        generated_output = np.vstack((pos_start, generated_output))
+        generated_output = net.extrapolate(t_input, [output_initial_condition], len(t_input)-1)
+        generated_output = np.vstack((output_initial_condition, generated_output))
 
         generated_input = np.hstack((t_input, gate_data))
 
