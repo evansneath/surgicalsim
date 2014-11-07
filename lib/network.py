@@ -141,16 +141,6 @@ def train_path_planning_network():
         # Normalize the time input of the data
         training_data = pathutils.normalize_time(training_data, t_col=constants.G_TIME_IDX)
 
-        print constants.G_TOTAL_NUM_INPUTS
-        print constants.G_TOTAL_NUM_OUTPUTS
-        print constants.G_TOTAL_COLS
-
-        print constants.G_RNN_NUM_INPUTS
-        print constants.G_RNN_NUM_OUTPUTS
-
-        print constants.G_RNN_INPUT_IDX
-        print constants.G_RNN_OUTPUT_IDX
-
         # Add this data sample to the training dataset
         training_dataset = datastore.list_to_dataset(
             training_data[:,constants.G_RNN_INPUT_IDX:constants.G_RNN_INPUT_IDX+constants.G_RNN_NUM_INPUTS],
@@ -167,22 +157,22 @@ def train_path_planning_network():
     output_end_idx = output_start_idx + constants.G_RNN_NUM_OUTPUTS
 
     output_initial_cond = training_data[0,output_start_idx:output_end_idx]
-    
+
     # Generate the time sequence input data for testing
     time_steps = constants.G_RNN_GENERATED_TIME_STEPS
     t_input = np.linspace(start=0.0, stop=1.0, num=time_steps)
     t_input = np.reshape(t_input, (len(t_input), 1))
-    
+
     gate_start_idx = constants.G_GATE_IDX
     gate_end_idx = gate_start_idx + constants.G_NUM_GATE_INPUTS
-    
+
     # Pull the gate data from the last training dataset
     gate_data = training_data[0:1,gate_start_idx:gate_end_idx]
     gate_data = np.tile(gate_data, (time_steps, 1))
-    
+
     # Build up a full ratings matrix
     nd_ratings = None
-    
+
     for rating in ratings:
         this_rating = rating * np.ones((1, constants.G_RNN_NUM_OUTPUTS))
 
