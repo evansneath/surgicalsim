@@ -165,6 +165,9 @@ class NeuralSimulation(object):
 
         # Get the initial path position (center of gate7)
         pos_start = self.env.get_body_pos('gate7') # [m]
+        rot_start = self.env.get_body_rot('tooltip')
+
+        initial_condition = np.hstack((pos_start, rot_start))
 
         # Get the first position of the PA10 at rest
         pos_init = self.env.get_body_pos('tooltip') # [m]
@@ -181,10 +184,10 @@ class NeuralSimulation(object):
         t_input = np.linspace(start=0.0, stop=1.0, num=t_total/dt)
         t_input = np.reshape(t_input, (len(t_input), 1))
 
-        rnn_path = self.rnn.extrapolate(t_input, [pos_start], len(t_input)-1)
+        rnn_path = self.rnn.extrapolate(t_input, [initial_condition], len(t_input)-1)
 
         # Add the initial condition point back onto the data
-        rnn_path = np.vstack((pos_start, rnn_path))
+        rnn_path = np.vstack((initial_condition, rnn_path))
 
         # Retrieve one set of standard gate position/orientation data
         file_path = pathutils.list_data_files(constants.G_TRAINING_DATA_DIR)[0]
